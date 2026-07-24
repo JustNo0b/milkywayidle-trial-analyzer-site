@@ -1,0 +1,2448 @@
+<!doctype html>
+<html lang="en" data-visualize-standalone>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Milkywayidle Trial Analyzer</title>
+<style>:root {
+  color-scheme: light dark;
+  background-color: transparent !important;
+
+  /* Agent-facing contract; keep in sync with SKILL.md. */
+  --background: var(
+    --main-surface-primary,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --foreground: light-dark(rgb(26 28 31), rgb(255 255 255));
+  --card: color-mix(in oklab, var(--foreground) 5%, transparent);
+  --card-foreground: var(--foreground);
+  --popover: light-dark(rgb(255 255 255), rgb(45 45 45));
+  --popover-foreground: var(--foreground);
+  --primary: light-dark(rgb(51 156 255), rgb(131 195 255));
+  --primary-foreground: light-dark(rgb(255 255 255), rgb(13 13 13));
+  --secondary: light-dark(rgb(255 255 255 / 96%), rgb(54 54 54 / 96%));
+  --secondary-foreground: var(--foreground);
+  --muted: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --muted-foreground: light-dark(
+    rgb(26 28 31 / 49.4%),
+    rgb(255 255 255 / 49.8%)
+  );
+  --accent: light-dark(rgb(229 242 255), rgb(13 39 63));
+  --accent-foreground: var(--primary);
+  --destructive: light-dark(rgb(226 85 7), rgb(255 133 73));
+  --border: light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%));
+  --input: light-dark(
+    rgb(26 28 31 / 11.8%),
+    color-mix(in oklab, rgb(0 0 0) 10%, transparent)
+  );
+  --ring: light-dark(rgb(51 156 255), rgb(131 195 255 / 76%));
+  --font-size-base: 14px;
+  --red: light-dark(rgb(186 38 35), rgb(250 66 62));
+  --green: light-dark(rgb(0 162 64), rgb(64 201 119));
+
+  /* Internal implementation variables; not part of the agent contract. */
+  --font-sans: -apple-system, system-ui, "Segoe UI", sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
+    monospace;
+  --font-size-normal: max(11px, var(--font-size-base));
+  --font-size-tooltip: calc(var(--font-size-base) - 1px);
+  --font-size-small: max(11px, calc(var(--font-size-base) - 2px));
+  --font-size-h1: calc(var(--font-size-normal) * 1.7142857143);
+  --font-size-h2: calc(var(--font-size-normal) * 1.4285714286);
+  --font-size-h3: calc(var(--font-size-normal) * 1.2857142857);
+  --font-weight-normal: 430;
+  --font-weight-medium: 500;
+  --line-height-normal: calc(var(--font-size-normal) * 1.5);
+  --line-height-tooltip: calc(var(--font-size-tooltip) * 1.4285714286);
+  --line-height-small: calc(var(--font-size-small) + 4px);
+  --radius: 10px;
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-2xl: calc(var(--radius) * 1.6);
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 2px -1px rgb(0 0 0 / 8%);
+  --checkmark-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 17 17'%3E%3Cpath d='M12.8961 3.64101C13.1297 3.41418 13.4984 3.37523 13.7779 3.56581C14.0571 3.75635 14.1554 4.11331 14.0299 4.41347L13.9615 4.53847L7.71151 13.7045C7.59411 13.8767 7.4063 13.9877 7.19881 14.0072C6.99136 14.0267 6.78564 13.9533 6.63826 13.806L2.88826 10.056L2.79842 9.9457C2.6192 9.67407 2.64927 9.30496 2.88826 9.06581C3.12738 8.82669 3.49647 8.79676 3.76815 8.97597L3.8785 9.06581L7.03084 12.2182L12.8053 3.74941L12.8961 3.64101Z'/%3E%3C/svg%3E");
+
+  /* Legacy aliases; not part of the current agent contract. */
+  --viz-bg: transparent;
+  --viz-panel: var(--card);
+  --viz-border: var(--border);
+  --viz-text: var(--foreground);
+  --viz-muted: var(--muted-foreground);
+  --viz-accent: var(--primary);
+  --viz-accent-text: var(--primary-foreground);
+  --viz-accent-bg: var(--accent);
+  --viz-font-size: var(--font-size-base);
+  --viz-warning: var(--destructive);
+  --color-background-primary: var(--background);
+  --color-text-primary: var(--foreground);
+  --color-border-secondary: var(--border);
+}
+
+:root[data-visualize-standalone] {
+  background-color: var(--background) !important;
+}
+
+/* Generic mobile code-block hosts provide light/dark mode but no series palette.
+   AppBlock hosts set all six variables themselves. */
+:root:not([data-app-block-surface]) {
+  --viz-series-1: var(--primary);
+  --viz-series-2: light-dark(#f3883b, #f59a56);
+  --viz-series-3: light-dark(#5dc977, #74d58b);
+  --viz-series-4: light-dark(#eb77b1, #f08fc0);
+  --viz-series-5: light-dark(#9b79ec, #aa91ef);
+  --viz-series-6: light-dark(#3ab9b1, #5acbc2);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html > body {
+  margin: 0;
+  padding: 5px;
+  color: var(--foreground);
+  background: transparent !important;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-normal);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+}
+
+:root:not([data-app-block-surface]) > body {
+  padding: 12px;
+}
+
+a {
+  color: color-mix(in srgb, var(--viz-accent) 80%, var(--viz-text) 20%);
+  cursor: pointer;
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  text-underline-offset: 2px;
+}
+
+a:is(:hover, :focus-visible) {
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-thickness: 0.5px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin-block: 0;
+}
+
+h1 {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h3,
+h4,
+h5,
+h6 {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.3;
+}
+
+b,
+strong,
+th {
+  font-weight: var(--font-weight-medium);
+}
+
+code:not(pre code) {
+  display: inline;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  word-break: break-word;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--foreground);
+  font: inherit;
+  text-align: start;
+}
+
+.table :is(th, td) {
+  padding-block: 10px;
+  padding-inline: 0 24px;
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid var(--border);
+  text-align: start;
+  vertical-align: top;
+}
+
+.table-responsive > .table :is(th, td) {
+  overflow-wrap: break-word;
+}
+
+.table :is(th, td):last-child {
+  padding-inline-end: 0;
+}
+
+.table :is(caption, thead th) {
+  font-weight: 600;
+}
+
+.table thead th {
+  padding-block: 8px;
+  border-bottom-color: color-mix(in srgb, var(--foreground) 16%, transparent);
+}
+
+.table tbody tr:last-child :is(th, td) {
+  border-bottom: 0;
+}
+
+.table.table-sm :is(th, td) {
+  padding-block: 6px;
+}
+
+.table.table-sm :is(th, td):not(:last-child) {
+  padding-inline-end: 16px;
+}
+
+.table :is(.text-end, [align="right"]) {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.table :is(.text-center, [align="center"]) {
+  text-align: center;
+}
+
+.table .text-nowrap {
+  white-space: nowrap;
+}
+
+#widget {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  background: transparent !important;
+}
+
+.card {
+  min-width: 0;
+  padding: 12px;
+  overflow: hidden;
+  overflow-wrap: break-word;
+  border-radius: var(--radius-2xl);
+  color: var(--card-foreground);
+  background: var(--card);
+}
+
+#widget > :not(.card) {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  left: 0;
+  width: max-content;
+  max-width: min(
+    20rem,
+    var(--tooltip-available-width, calc(100vw - 10px)),
+    calc(100vw - 10px)
+  );
+  max-height: min(
+    var(--tooltip-available-height, calc(100vh - 10px)),
+    calc(100vh - 10px)
+  );
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--popover-foreground);
+  background: var(--popover);
+  box-shadow: none;
+  font-size: var(--font-size-tooltip);
+  line-height: var(--line-height-tooltip);
+  overflow-wrap: break-word;
+  white-space: normal;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* The bundled tooltip runtime owns [data-tooltip]. AppBlock's CSS-only
+   pseudo-tooltip can widen dense grids even while hidden. */
+main [data-tooltip]::after {
+  content: none;
+}
+
+.viz-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(max(180px, 24%), 1fr));
+  gap: 10px;
+}
+
+.viz-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.viz-stat-value {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+.viz-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.viz-badge {
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  color: var(--accent-foreground);
+  background: var(--accent);
+  font-weight: var(--font-weight-medium);
+}
+
+small,
+.text-small,
+.viz-badge {
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-small);
+}
+
+.text-muted {
+  color: var(--muted-foreground);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.viz-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.viz-controls > .form-label {
+  display: grid;
+  min-width: min(100%, 260px);
+  flex: 1 1 280px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin-bottom: 0;
+}
+
+.viz-controls > .form-label > :is(.form-control, .form-range, .form-select) {
+  grid-column: 1 / -1;
+}
+
+.btn,
+.form-check-input,
+.form-control,
+.form-range,
+.form-select {
+  font: inherit;
+}
+
+.btn {
+  appearance: button;
+  display: inline-flex;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0 8px;
+  -webkit-app-region: no-drag;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: var(--cursor-interaction, pointer);
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.btn:is(.btn-block, .viz-tile) {
+  inline-size: 100%;
+}
+
+.btn.viz-tile {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+a.btn {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn-primary {
+  border-color: transparent;
+  color: var(--interactive-label-primary-default, var(--primary-foreground));
+  background: var(--interactive-bg-primary-default, var(--foreground));
+  background-clip: padding-box;
+}
+
+.btn-primary .text-muted {
+  color: color-mix(
+    in srgb,
+    var(--interactive-label-primary-default, var(--primary-foreground)) 50%,
+    transparent
+  );
+}
+
+.btn-primary:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 80%, transparent);
+  background-clip: padding-box;
+}
+
+.btn-ghost {
+  border-color: transparent;
+  color: var(--muted-foreground);
+  background: transparent;
+}
+
+.btn-ghost:not(:disabled):hover {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+[data-lucide] {
+  stroke-width: 1.6;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--foreground);
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  padding: 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  color: var(--foreground);
+  background: var(--secondary);
+}
+
+.form-control::placeholder {
+  color: var(--muted-foreground);
+}
+
+.form-control[type="file"] {
+  padding: 0;
+  overflow: hidden;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control[type="file"]::file-selector-button {
+  min-height: 26px;
+  margin-right: 8px;
+  padding: 0 8px;
+  border: 0;
+  border-right: 1px solid var(--input);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: inherit;
+  font: inherit;
+}
+
+.form-control[type="file"]:not(:disabled):hover::file-selector-button {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-control-color[type="color"] {
+  width: 40px;
+  height: 28px;
+  padding: 3px;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control-color[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.form-control-color[type="color"]::-webkit-color-swatch {
+  border: 0;
+  border-radius: calc(var(--radius-lg) - 4px);
+}
+
+textarea.form-control {
+  height: auto;
+  min-height: 72px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+.form-control:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-control:disabled,
+.form-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.form-select {
+  appearance: none;
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  margin: 0;
+  padding: 0 32px 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  color: var(--foreground);
+  background-color: var(--secondary);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted-foreground) 50%),
+    linear-gradient(135deg, var(--muted-foreground) 50%, transparent 50%);
+  background-position:
+    calc(100% - 14px) 50%,
+    calc(100% - 10px) 50%;
+  background-repeat: no-repeat;
+  background-size: 4px 4px;
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-select:not(:disabled):hover {
+  background-color: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-select:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-check {
+  display: flex;
+  min-height: 20px;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-check-input {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  margin: 0;
+  border: 1px solid var(--input);
+  color: var(--primary-foreground);
+  background-color: transparent;
+  cursor: var(--cursor-interaction, default);
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    box-shadow 150ms;
+}
+
+.form-check:not(.form-switch) .form-check-input[type="checkbox"] {
+  border-color: var(--input);
+  border-radius: var(--radius-sm);
+  background-color: var(--secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input:not(:disabled):not(:checked):hover {
+  background-color: var(--card);
+}
+
+.form-check:not(.form-switch) .form-check-input[type="checkbox"]:checked {
+  border-color: var(--primary);
+  background-color: var(--primary);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input[type="checkbox"]:checked::before {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--primary-foreground);
+  content: "";
+  mask: var(--checkmark-image) center / 12px 12px no-repeat;
+}
+
+.form-check-input[type="radio"] {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+}
+
+.form-check-input[type="radio"]:checked {
+  border: 2px solid var(--primary);
+  background:
+    radial-gradient(circle, var(--primary-foreground) 0 2.5px, transparent 3px),
+    var(--primary);
+}
+
+.form-check:not(.form-switch) .form-check-input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+}
+
+.form-switch .form-check-input:disabled,
+.form-switch .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.form-check-label {
+  color: var(--foreground);
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-switch .form-check-input {
+  position: relative;
+  width: 32px;
+  height: 20px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+  box-shadow: none;
+  transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 1px solid light-dark(var(--primary-foreground), var(--foreground));
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+  box-shadow: var(--shadow-sm);
+  content: "";
+  transform: translate(2px, -50%);
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input:checked {
+  background: var(--primary);
+}
+
+.form-switch .form-check-input:checked::before {
+  transform: translate(14px, -50%);
+}
+
+.form-switch .form-check-input:focus-visible {
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.form-range {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 28px;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  outline: none;
+  border: 0;
+  accent-color: var(--primary);
+  background: linear-gradient(
+      color-mix(in srgb, var(--foreground) 7%, transparent),
+      color-mix(in srgb, var(--foreground) 7%, transparent)
+    )
+    center / 100% 2px no-repeat;
+}
+
+.form-range::-webkit-slider-runnable-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-webkit-slider-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range::-moz-range-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-moz-range-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.btn:not(.btn-primary, .viz-tile):is(
+    [aria-pressed="true"],
+    [aria-selected="true"],
+    .is-selected
+  ) {
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+  background: var(--primary);
+}
+
+.btn.viz-tile:is([aria-pressed="true"], [aria-selected="true"], .is-selected) {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+#widget > svg {
+  width: 100%;
+}
+
+.text-warning,
+.text-destructive {
+  color: var(--destructive);
+}
+</style>
+</head>
+<body>
+<div id="mwtrial-app">
+  <style>
+    #mwtrial-app {
+      --mw-bg: var(--background, Canvas);
+      --mw-fg: var(--foreground, CanvasText);
+      --mw-card: var(--card, Canvas);
+      --mw-card-fg: var(--card-foreground, CanvasText);
+      --mw-muted: var(--muted, ButtonFace);
+      --mw-muted-fg: var(--muted-foreground, GrayText);
+      --mw-primary: var(--primary, Highlight);
+      --mw-primary-fg: var(--primary-foreground, HighlightText);
+      --mw-accent: var(--accent, ButtonFace);
+      --mw-accent-fg: var(--accent-foreground, ButtonText);
+      --mw-border: var(--border, GrayText);
+      --mw-good: var(--viz-series-2, LinkText);
+      --mw-warn: var(--viz-series-4, Highlight);
+      --mw-bad: var(--destructive, CanvasText);
+      color: var(--mw-fg);
+      background: transparent;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      width: 100%;
+    }
+    #mwtrial-app * { box-sizing: border-box; }
+    #mwtrial-app .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    #mwtrial-app button, #mwtrial-app input, #mwtrial-app select { font: inherit; }
+    #mwtrial-app .mw-shell {
+      background: linear-gradient(145deg, color-mix(in srgb, var(--mw-bg) 94%, var(--mw-primary)), var(--mw-bg));
+      border: 1px solid var(--mw-border);
+      border-radius: 18px;
+      padding: 20px;
+    }
+    #mwtrial-app .mw-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; flex-wrap: wrap; }
+    #mwtrial-app h1, #mwtrial-app h2, #mwtrial-app h3, #mwtrial-app p { margin: 0; }
+    #mwtrial-app h1 { font-size: clamp(1.45rem, 4vw, 2.35rem); font-weight: 500; }
+    #mwtrial-app h2 { font-size: 1.35rem; font-weight: 500; }
+    #mwtrial-app h3 { font-size: 1rem; font-weight: 500; }
+    #mwtrial-app .mw-kicker { color: var(--mw-primary); letter-spacing: .08em; text-transform: uppercase; font-size: .78rem; margin-bottom: 6px; }
+    #mwtrial-app .mw-sub, #mwtrial-app .mw-note { color: var(--mw-muted-fg); }
+    #mwtrial-app .mw-sub { margin-top: 8px; }
+    #mwtrial-app .mw-note { font-size: .82rem; }
+    #mwtrial-app .mw-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    #mwtrial-app .btn, #mwtrial-app .form-select {
+      border: 1px solid var(--mw-border);
+      border-radius: 10px;
+      background: var(--mw-card);
+      color: var(--mw-card-fg);
+      padding: 9px 13px;
+    }
+    #mwtrial-app .btn { cursor: pointer; }
+    #mwtrial-app .btn:hover { background: var(--mw-accent); color: var(--mw-accent-fg); }
+    #mwtrial-app .btn-primary { background: var(--mw-primary); color: var(--mw-primary-fg); border-color: transparent; }
+    #mwtrial-app .btn[aria-pressed="true"] { background: var(--mw-primary); color: var(--mw-primary-fg); border-color: transparent; }
+    #mwtrial-app .mw-upload {
+      margin-top: 18px;
+      border: 1px dashed var(--mw-border);
+      border-radius: 14px;
+      background: color-mix(in srgb, var(--mw-card) 82%, transparent);
+      padding: 28px;
+      text-align: center;
+      cursor: pointer;
+      display: block;
+    }
+    #mwtrial-app .mw-upload.is-drag { border-color: var(--mw-primary); background: color-mix(in srgb, var(--mw-primary) 10%, var(--mw-card)); }
+    #mwtrial-app .mw-upload strong { display: block; margin-bottom: 5px; font-weight: 500; }
+    #mwtrial-app .mw-status { margin-top: 12px; min-height: 22px; color: var(--mw-muted-fg); }
+    #mwtrial-app .mw-status.is-error { color: var(--mw-bad); }
+    #mwtrial-app .mw-progress { height: 6px; margin-top: 8px; background: var(--mw-muted); border-radius: 999px; overflow: hidden; }
+    #mwtrial-app .mw-progress > i { display: block; height: 100%; width: 0; background: var(--mw-primary); transition: width .2s ease; }
+    #mwtrial-app .mw-workspace[hidden], #mwtrial-app .mw-page[hidden] { display: none; }
+    #mwtrial-app .mw-toolbar { margin-top: 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    #mwtrial-app .mw-nav { display: flex; gap: 7px; flex-wrap: wrap; }
+    #mwtrial-app .mw-filters {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+      gap: 10px;
+      align-items: end;
+      padding: 12px 0;
+      border-top: 1px solid var(--mw-border);
+      border-bottom: 1px solid var(--mw-border);
+    }
+    #mwtrial-app .mw-filters[hidden] { display: none; }
+    #mwtrial-app .mw-filter-field { display: grid; gap: 5px; color: var(--mw-muted-fg); font-size: .78rem; }
+    #mwtrial-app .form-control {
+      width: 100%;
+      border: 1px solid var(--mw-border);
+      border-radius: 10px;
+      background: var(--mw-card);
+      color: var(--mw-card-fg);
+      padding: 9px 11px;
+    }
+    #mwtrial-app .mw-filter-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    #mwtrial-app .mw-filter-note { grid-column: 1 / -1; display: flex; gap: 8px; justify-content: space-between; flex-wrap: wrap; }
+    #mwtrial-app .mw-page { margin-top: 14px; background: var(--mw-bg); border: 1px solid var(--mw-border); border-radius: 16px; padding: 18px; }
+    #mwtrial-app .mw-page-title { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 14px; }
+    #mwtrial-app .mw-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 10px; margin-bottom: 14px; }
+    #mwtrial-app .mw-stat { background: var(--mw-card); color: var(--mw-card-fg); border: 1px solid var(--mw-border); border-radius: 12px; padding: 13px; }
+    #mwtrial-app .mw-stat span { display: block; color: var(--mw-muted-fg); font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; }
+    #mwtrial-app .mw-stat strong { display: block; font-size: 1.35rem; font-weight: 500; margin: 3px 0; }
+    #mwtrial-app .mw-panel { background: var(--mw-card); color: var(--mw-card-fg); border: 1px solid var(--mw-border); border-radius: 12px; padding: 14px; margin-top: 12px; }
+    #mwtrial-app .mw-table-wrap { width: 100%; overflow-x: auto; border: 1px solid var(--mw-border); border-radius: 12px; }
+    #mwtrial-app table { width: 100%; border-collapse: collapse; background: var(--mw-card); color: var(--mw-card-fg); }
+    #mwtrial-app th, #mwtrial-app td { padding: 9px 10px; text-align: right; border-bottom: 1px solid var(--mw-border); white-space: nowrap; }
+    #mwtrial-app th { color: var(--mw-muted-fg); font-size: .72rem; letter-spacing: .04em; text-transform: uppercase; font-weight: 500; background: var(--mw-muted); }
+    #mwtrial-app th:first-child, #mwtrial-app td:first-child, #mwtrial-app .mw-left { text-align: left; }
+    #mwtrial-app tbody tr:last-child td { border-bottom: 0; }
+    #mwtrial-app tbody tr:hover td { background: var(--mw-accent); color: var(--mw-accent-fg); }
+    #mwtrial-app .mw-rank { color: var(--mw-warn); }
+    #mwtrial-app .mw-good { color: var(--mw-good); }
+    #mwtrial-app .mw-bad { color: var(--mw-bad); }
+    #mwtrial-app .mw-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    #mwtrial-app .mw-bar { display: inline-block; width: 90px; height: 7px; background: var(--mw-muted); border-radius: 99px; overflow: hidden; vertical-align: middle; margin-left: 8px; }
+    #mwtrial-app .mw-bar i { display: block; height: 100%; background: var(--mw-primary); border-radius: inherit; }
+    #mwtrial-app .mw-badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 4px 8px; background: var(--mw-muted); color: var(--mw-card-fg); font-size: .74rem; }
+    #mwtrial-app .mw-badge.good { background: color-mix(in srgb, var(--mw-good) 18%, var(--mw-card)); }
+    #mwtrial-app .mw-badge.bad { background: color-mix(in srgb, var(--mw-bad) 18%, var(--mw-card)); }
+    #mwtrial-app .mw-selector { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; margin-bottom: 12px; }
+    #mwtrial-app .mw-selector label { display: grid; gap: 5px; color: var(--mw-muted-fg); font-size: .78rem; }
+    #mwtrial-app .mw-chart { width: 100%; height: auto; min-height: 210px; color: var(--mw-primary); }
+    #mwtrial-app .mw-chart .grid { stroke: var(--mw-border); stroke-width: 1; }
+    #mwtrial-app .mw-chart .axistext { fill: var(--mw-muted-fg); font-size: 12px; }
+    #mwtrial-app .mw-chart .series { fill: none; stroke: currentColor; stroke-width: 3; }
+    #mwtrial-app .mw-chart .dot { fill: var(--mw-good); stroke: var(--mw-card-fg); stroke-width: 1.5; }
+    #mwtrial-app .mw-chart .dot.partial { fill: var(--mw-bad); }
+    #mwtrial-app .mw-matrix { font-size: .78rem; }
+    #mwtrial-app .mw-matrix th:first-child, #mwtrial-app .mw-matrix td:first-child { position: sticky; left: 0; z-index: 2; background: var(--mw-card); }
+    #mwtrial-app .mw-matrix th:first-child { background: var(--mw-muted); z-index: 3; }
+    #mwtrial-app .mw-cell { min-width: 105px; text-align: center; border-radius: 7px; padding: 5px 7px; background: color-mix(in srgb, var(--mw-primary) calc(var(--heat) * .26%), var(--mw-card)); }
+    #mwtrial-app .mw-cell strong, #mwtrial-app .mw-cell span { display: block; }
+    #mwtrial-app .mw-cell strong { font-weight: 500; }
+    #mwtrial-app .mw-cell span { color: var(--mw-muted-fg); font-size: .7rem; margin-top: 2px; }
+    #mwtrial-app .mw-empty { padding: 28px; text-align: center; color: var(--mw-muted-fg); }
+    #mwtrial-app .mw-foot { margin-top: 12px; padding: 12px; border-top: 1px solid var(--mw-border); color: var(--mw-muted-fg); font-size: .78rem; }
+    @media (max-width: 720px) {
+      #mwtrial-app .mw-shell, #mwtrial-app .mw-page { padding: 12px; }
+      #mwtrial-app .mw-two { grid-template-columns: 1fr; }
+      #mwtrial-app .mw-actions, #mwtrial-app .mw-nav { width: 100%; }
+      #mwtrial-app .mw-actions .btn, #mwtrial-app .mw-nav .btn { flex: 1 1 auto; }
+    }
+    @media print {
+      #mwtrial-app .mw-upload, #mwtrial-app .mw-toolbar, #mwtrial-app .mw-status, #mwtrial-app .mw-progress { display: none !important; }
+      #mwtrial-app .mw-shell, #mwtrial-app .mw-page { border: 0; padding: 0; }
+      #mwtrial-app .mw-page[hidden] { display: none !important; }
+    }
+  </style>
+
+  <div class="mw-shell">
+    <div class="mw-head">
+      <div>
+        <div class="mw-kicker">MilkyWayIdle · Guild Trial Analytics</div>
+        <h1>Trial Report Builder</h1>
+        <p class="mw-sub">Load ZIP exports or JSON files to generate five report pages locally in your browser.</p>
+      </div>
+      <div class="mw-actions">
+        <button id="mw-new" class="btn" type="button" hidden>Load other files</button>
+        <button id="mw-export" class="btn" type="button" hidden>Export current page as PNG</button>
+      </div>
+    </div>
+
+    <label id="mw-drop" class="mw-upload" for="mw-file">
+      <input id="mw-file" class="sr-only" type="file" accept=".zip,.json,application/zip,application/json" multiple>
+      <strong>Drop ZIP or JSON files here</strong>
+      <span class="mw-note">Supported: guild events, per-tier encounters, loadout_data.json, battle_unit_fetched, and multi-monster trials.</span>
+    </label>
+    <div id="mw-status" class="mw-status" role="status" aria-live="polite">Ready.</div>
+    <div class="mw-progress" aria-hidden="true"><i id="mw-progress-bar"></i></div>
+
+    <section id="mw-workspace" class="mw-workspace" hidden>
+      <div class="mw-toolbar">
+        <nav id="mw-nav" class="mw-nav" aria-label="Report pages"></nav>
+        <span id="mw-source-badge" class="mw-badge"></span>
+      </div>
+      <section id="mw-filters" class="mw-filters" aria-label="Report filters" hidden>
+        <label class="mw-filter-field">Attribution
+          <select id="mw-method" class="form-select">
+            <option value="conservative">Conservative · recommended</option>
+            <option value="confirmed">Confirmed only</option>
+            <option value="estimated">Estimated total · legacy</option>
+          </select>
+        </label>
+        <label class="mw-filter-field">Tier
+          <select id="mw-tier" class="form-select"></select>
+        </label>
+        <label class="mw-filter-field">Target
+          <select id="mw-target" class="form-select"></select>
+        </label>
+        <label class="mw-filter-field">Combat style
+          <select id="mw-style" class="form-select"></select>
+        </label>
+        <label class="mw-filter-field">Role
+          <select id="mw-role" class="form-select"></select>
+        </label>
+        <label class="mw-filter-field">Nickname
+          <input id="mw-search" class="form-control" type="search" placeholder="Search player">
+        </label>
+        <label class="mw-filter-field">Sort players by
+          <select id="mw-sort" class="form-select">
+            <option value="damage">Damage</option>
+            <option value="dps">DPS</option>
+            <option value="hit_rate">Hit rate</option>
+            <option value="confidence">Confirmed share</option>
+            <option value="name">Nickname</option>
+          </select>
+        </label>
+        <div class="mw-filter-actions">
+          <button id="mw-reset-filters" class="btn" type="button">Reset filters</button>
+        </div>
+        <div class="mw-filter-note">
+          <span id="mw-method-note" class="mw-note"></span>
+          <span id="mw-filter-count" class="mw-note"></span>
+        </div>
+      </section>
+      <div id="mw-pages"></div>
+    </section>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script>
+  (() => {
+    "use strict";
+    const root = document.getElementById("mwtrial-app");
+    const fileInput = root.querySelector("#mw-file");
+    const drop = root.querySelector("#mw-drop");
+    const statusEl = root.querySelector("#mw-status");
+    const progressEl = root.querySelector("#mw-progress-bar");
+    const workspace = root.querySelector("#mw-workspace");
+    const pagesEl = root.querySelector("#mw-pages");
+    const navEl = root.querySelector("#mw-nav");
+    const sourceBadge = root.querySelector("#mw-source-badge");
+    const filtersEl = root.querySelector("#mw-filters");
+    const methodEl = root.querySelector("#mw-method");
+    const tierFilterEl = root.querySelector("#mw-tier");
+    const targetFilterEl = root.querySelector("#mw-target");
+    const styleFilterEl = root.querySelector("#mw-style");
+    const roleFilterEl = root.querySelector("#mw-role");
+    const searchFilterEl = root.querySelector("#mw-search");
+    const sortFilterEl = root.querySelector("#mw-sort");
+    const resetFiltersBtn = root.querySelector("#mw-reset-filters");
+    const methodNoteEl = root.querySelector("#mw-method-note");
+    const filterCountEl = root.querySelector("#mw-filter-count");
+    const newBtn = root.querySelector("#mw-new");
+    const exportBtn = root.querySelector("#mw-export");
+
+    const OFFENSIVE = new Set(["toxic_pollen", "life_drain", "entangle", "smoke_burst", "fireball", "firestorm", "flame_blast", "water_strike", "frost_surge", "ice_spear", "pestilent_shot", "penetrating_shot", "fracturing_impact", "crippling_slash", "maim", "puncture", "auto_attack"]);
+    const UTILITY = new Set(["revive", "rejuvenate", "natures_veil", "mana_spring", "insanity", "elemental_affinity", "precision", "frenzy", "berserk", "critical_aura", "mystic_aura", "fierce_aura", "speed_aura", "guardian_aura", "invincible", "spike_shell", "retribution", "provoke", "toughness"]);
+    const PAGE_NAMES = ["Raid Overview", "Builds & Skills", "Accuracy & Survival", "Tier & Monsters", "DPS by Tier"];
+    const ATTRIBUTION = {
+      conservative: {
+        label: "Conservative",
+        note: "Credits only the visible share of a batched HP-drop packet; the unseen remainder stays unattributed."
+      },
+      confirmed: {
+        label: "Confirmed only",
+        note: "Credits only packets with one visible player and exactly one new damage splat."
+      },
+      estimated: {
+        label: "Estimated total · legacy",
+        note: "Distributes the entire HP-drop packet. Batched packets can overstate a visible player, so treat this as lower confidence."
+      }
+    };
+    let report = null;
+    let currentView = null;
+    let activePage = 0;
+    let selectedPlayerName = "";
+    let filterState = {method: "conservative", tier: "all", target: "all", style: "all", role: "all", search: "", sort: "damage"};
+
+    function setStatus(text, progress, error) {
+      statusEl.textContent = text;
+      statusEl.classList.toggle("is-error", Boolean(error));
+      progressEl.style.width = Math.max(0, Math.min(100, progress || 0)) + "%";
+    }
+
+    function esc(value) {
+      return String(value == null ? "" : value).replace(/[&<>"']/g, ch => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", "\"":"&quot;", "'":"&#39;"})[ch]);
+    }
+
+    function number(value, digits) {
+      return Number(value || 0).toLocaleString("en-US", {minimumFractionDigits: digits || 0, maximumFractionDigits: digits || 0});
+    }
+
+    function percent(value) { return number((value || 0) * 100, 1) + "%"; }
+    function compact(value) {
+      value = Number(value || 0);
+      if (value >= 1000000) return number(value / 1000000, 2) + "M";
+      if (value >= 1000) return number(value / 1000, 1) + "K";
+      return number(value, 0);
+    }
+    function clock(seconds) {
+      seconds = Math.round(seconds || 0);
+      return String(Math.floor(seconds / 60)).padStart(2, "0") + ":" + String(seconds % 60).padStart(2, "0");
+    }
+    function pretty(value) { return String(value || "unknown").split("_").map(v => v ? v[0].toUpperCase() + v.slice(1) : v).join(" "); }
+    function median(values) {
+      if (!values || !values.length) return 1;
+      const sorted = values.slice().sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+    }
+    function addNested(map, key1, key2, amount) {
+      if (!map.has(key1)) map.set(key1, new Map());
+      const child = map.get(key1);
+      child.set(key2, (child.get(key2) || 0) + amount);
+    }
+    function yieldFrame() { return new Promise(resolve => setTimeout(resolve, 0)); }
+    function recordSkill(record) {
+      const hrid = record && record.abilityHrid;
+      return hrid ? hrid.split("/").pop() : null;
+    }
+    function monsterRecords(event) {
+      const map = event && event.data && event.data.mMap;
+      return map ? Object.entries(map) : [];
+    }
+    function monsterRecord(event) {
+      const records = monsterRecords(event);
+      return records.length ? records[0][1] : null;
+    }
+    function slotLabel(pid) { return "P" + String(Number(pid)).padStart(2, "0"); }
+    function emptyCharacter(name) {
+      return {name, character_id: null, max_hp: 0, max_mp: 0, abilities: {}, combat_style: null, damage_type: null, accuracy_ratings: null, evasion_ratings: null, equipment: [], data_sources: []};
+    }
+    function sourceFor(character, source) {
+      character.data_sources = Array.isArray(character.data_sources) ? character.data_sources : [];
+      if (!character.data_sources.includes(source)) character.data_sources.push(source);
+    }
+    function tail(value) { return String(value || "").split("/").pop(); }
+    function firstValue(object, keys) {
+      for (const key of keys) if (object && object[key] != null) return object[key];
+      return null;
+    }
+    function abilityRows(unit) {
+      const rows = [];
+      for (const value of [unit && unit.combatAbilities, unit && unit.characterAbilities, unit && unit.abilities, unit && unit.combatUnit && unit.combatUnit.combatAbilities]) {
+        if (Array.isArray(value)) rows.push(...value);
+      }
+      return rows;
+    }
+    function equipmentRows(unit) {
+      const rows = [];
+      for (const value of [unit && unit.equipment, unit && unit.equippedItems, unit && unit.characterItems, unit && unit.items]) {
+        if (Array.isArray(value)) rows.push(...value);
+        else if (value && typeof value === "object") rows.push(...Object.entries(value).map(([slot, item]) => Object.assign({slot}, item && typeof item === "object" ? item : {itemHrid: item})));
+      }
+      return rows.map(item => ({
+        slot: firstValue(item, ["slot", "equipmentSlot", "locationHrid", "itemLocationHrid"]),
+        item: tail(firstValue(item, ["itemHrid", "hrid", "item", "name"])),
+        enhancement_level: firstValue(item, ["enhancementLevel", "enhancement_level", "level"]),
+        count: firstValue(item, ["count", "quantity"])
+      })).filter(item => item.item);
+    }
+    function battleUnits(event) {
+      const data = event && event.data || {};
+      const message = event && event.message || {};
+      const candidates = [
+        event && event.unit, data.unit, message.unit,
+        event && event.combatUnit, data.combatUnit, message.combatUnit,
+        event && event.player, data.player, message.player
+      ];
+      for (const group of [event && event.units, data.units, message.units, event && event.players, data.players, message.players]) {
+        if (Array.isArray(group)) candidates.push(...group);
+      }
+      return candidates.filter(value => value && typeof value === "object");
+    }
+    function mergeBattleUnitFetched(characters, events) {
+      const accuracyKeys = ["stabAccuracyRating", "slashAccuracyRating", "smashAccuracyRating", "rangedAccuracyRating", "magicAccuracyRating"];
+      const evasionKeys = ["stabEvasionRating", "slashEvasionRating", "smashEvasionRating", "rangedEvasionRating", "magicEvasionRating"];
+      let eventsSeen = 0, unitsSeen = 0, playersEnriched = 0, equipmentItems = 0;
+      const enrichedNames = new Set();
+      for (const event of events || []) {
+        if (!event || event.type !== "battle_unit_fetched") continue;
+        eventsSeen++;
+        for (const unit of battleUnits(event)) {
+          unitsSeen++;
+          const nestedCharacter = unit.character && typeof unit.character === "object" ? unit.character : {};
+          const name = firstValue(unit, ["name", "characterName", "playerName"]) || nestedCharacter.name;
+          const id = firstValue(unit, ["characterID", "characterId", "id"]) || nestedCharacter.id;
+          let character = name && characters.get(name);
+          if (!character && id != null) character = Array.from(characters.values()).find(row => String(row.character_id) === String(id));
+          if (!character && name) {
+            character = emptyCharacter(name);
+            characters.set(name, character);
+          }
+          if (!character) continue;
+          sourceFor(character, "battle_unit_fetched");
+          character.character_id = id == null ? character.character_id : id;
+          character.max_hp = Number(firstValue(unit, ["maxHitpoints", "maxHP", "max_hp"]) || character.max_hp || 0);
+          character.max_mp = Number(firstValue(unit, ["maxManapoints", "maxMP", "max_mp"]) || character.max_mp || 0);
+          for (const ability of abilityRows(unit)) {
+            const abilityId = tail(firstValue(ability, ["abilityHrid", "hrid", "id"]));
+            if (abilityId) character.abilities[abilityId] = firstValue(ability, ["level", "abilityLevel"]);
+          }
+          const details = unit.combatDetails || unit.combatUnit && unit.combatUnit.combatDetails || {};
+          const stats = details.combatStats || unit.combatStats || unit.stats || {};
+          const styles = stats.combatStyleHrids || [];
+          character.combat_style = tail(styles[0] || stats.combatStyle || character.combat_style) || character.combat_style;
+          character.damage_type = tail(stats.damageType || character.damage_type) || character.damage_type;
+          const accuracies = Object.fromEntries(accuracyKeys.map(key => [key, firstValue(details, [key]) ?? firstValue(stats, [key])]));
+          const evasions = Object.fromEntries(evasionKeys.map(key => [key, firstValue(details, [key]) ?? firstValue(stats, [key])]));
+          if (Object.values(accuracies).some(value => value != null)) character.accuracy_ratings = accuracies;
+          if (Object.values(evasions).some(value => value != null)) character.evasion_ratings = evasions;
+          const maxAccuracy = firstValue(stats, ["maxAcc", "maxAccuracy"]);
+          if (maxAccuracy != null) character.max_accuracy = Number(maxAccuracy);
+          const combatLevel = firstValue(stats, ["combatLevel", "level"]);
+          if (combatLevel != null) character.combat_level = Number(combatLevel);
+          const equipment = equipmentRows(unit);
+          if (equipment.length) {
+            const known = new Set((character.equipment || []).map(item => [item.slot, item.item, item.enhancement_level].join("|")));
+            for (const item of equipment) if (!known.has([item.slot, item.item, item.enhancement_level].join("|"))) character.equipment.push(item);
+            equipmentItems += equipment.length;
+          }
+          character.battle_unit_summary = {
+            loot: unit.totalLootMap || null,
+            skill_experience: unit.totalSkillExperienceMap || null
+          };
+          character.loadout_available = character.loadout_available || abilityRows(unit).length > 0 || equipment.length > 0 || Object.keys(stats).length > 0;
+          enrichedNames.add(character.name);
+        }
+      }
+      playersEnriched = enrichedNames.size;
+      return {events: eventsSeen, units: unitsSeen, players: playersEnriched, equipment_items: equipmentItems};
+    }
+
+    function buildRosters(events) {
+      const rosters = new Map();
+      const characters = new Map();
+      const bosses = new Map();
+      const accuracyKeys = ["stabAccuracyRating", "slashAccuracyRating", "smashAccuracyRating", "rangedAccuracyRating", "magicAccuracyRating"];
+      const evasionKeys = ["stabEvasionRating", "slashEvasionRating", "smashEvasionRating", "rangedEvasionRating", "magicEvasionRating"];
+      for (const event of events) {
+        if (!event || event.type !== "new_guild_battle" || !event.data) continue;
+        const tier = Number(event.data.tier);
+        const players = event.data.players || [];
+        const names = players.map(player => player.name || "Unknown");
+        rosters.set(tier, names);
+        for (const player of players) {
+          const name = player.name || "Unknown";
+          if (!characters.has(name)) {
+            characters.set(name, emptyCharacter(name));
+            characters.get(name).character_id = player.character && player.character.id;
+          }
+          const character = characters.get(name);
+          sourceFor(character, "new_guild_battle");
+          for (const ability of player.combatAbilities || []) {
+            const id = String(ability.abilityHrid || "").split("/").pop();
+            if (id) character.abilities[id] = ability.level;
+          }
+          const stats = player.combatDetails && player.combatDetails.combatStats || {};
+          const details = player.combatDetails || null;
+          const styles = stats.combatStyleHrids || [];
+          if (styles[0]) character.combat_style = String(styles[0]).split("/").pop();
+          if (stats.damageType) character.damage_type = String(stats.damageType).split("/").pop();
+          if (details) {
+            character.accuracy_ratings = Object.fromEntries(accuracyKeys.map(key => [key, details[key]]));
+            character.evasion_ratings = Object.fromEntries(evasionKeys.map(key => [key, details[key]]));
+          }
+        }
+        const monsterRows = (event.data.monsters || []).map((monster, index) => {
+          const details = monster.combatDetails || {};
+          const stats = details.combatStats || {};
+          return {
+            id: String(index),
+            name: monster.name || "Monster " + (index + 1),
+            hrid: String(monster.hrid || "").split("/").pop() || null,
+            combat_style: ((stats.combatStyleHrids || [""])[0] || "").split("/").pop() || null,
+            damage_type: String(stats.damageType || "").split("/").pop() || null,
+            accuracy_ratings: Object.fromEntries(accuracyKeys.map(key => [key, details[key]])),
+            evasion_ratings: Object.fromEntries(evasionKeys.map(key => [key, details[key]])),
+            resistances: {
+              armor: details.totalArmor,
+              water: details.totalWaterResistance,
+              nature: details.totalNatureResistance,
+              fire: details.totalFireResistance
+            }
+          };
+        });
+        if (monsterRows.length) bosses.set(tier, monsterRows);
+      }
+      return {rosters, characters, bosses};
+    }
+
+    function mergeLoadouts(characters, loadouts) {
+      let matched = 0;
+      for (const [key, loadout] of Object.entries(loadouts || {})) {
+        if (!loadout || typeof loadout !== "object") continue;
+        const name = loadout.name || key;
+        if (!name) continue;
+        if (!characters.has(name)) {
+          characters.set(name, emptyCharacter(name));
+        }
+        const character = characters.get(name);
+        sourceFor(character, "loadout_data.json");
+        character.max_hp = loadout.mHP || character.max_hp;
+        character.max_mp = loadout.mMP || character.max_mp;
+        for (const ability of loadout.abilities || []) if (ability && ability.hrid) character.abilities[ability.hrid] = ability.level;
+        const stats = loadout.stats || {};
+        character.combat_style = stats.combatStyle || character.combat_style;
+        character.max_accuracy = stats.maxAcc == null ? character.max_accuracy : Number(stats.maxAcc);
+        character.combat_level = stats.combatLevel == null ? character.combat_level : Number(stats.combatLevel);
+        character.magic_level = stats.magicLevel == null ? character.magic_level : Number(stats.magicLevel);
+        character.melee_level = stats.meleeLevel == null ? character.melee_level : Number(stats.meleeLevel);
+        character.ranged_level = stats.rangedLevel == null ? character.ranged_level : Number(stats.rangedLevel);
+        character.cast_speed = stats.castSpeed == null ? character.cast_speed : Number(stats.castSpeed);
+        character.aura_duplicate = Boolean(loadout.aura_duplicate);
+        character.aura_duplicate_best = loadout.aura_duplicate_best || "";
+        character.loadout_available = true;
+        matched++;
+      }
+      return matched;
+    }
+
+    async function reconstructTier(tier, roster, events, progressBase, progressSpan, bossList) {
+      const playerState = new Map();
+      const currentSkill = new Map();
+      const monsterDamageEvents = new Map();
+      const monsterAttacks = new Map();
+      const abilityCasts = new Map();
+      const deathKeys = new Map();
+      const deathFallback = new Set();
+      const incomingCounters = new Map();
+      const incomingCrits = new Map();
+      const participants = new Set();
+      const nameFor = pid => roster && roster[Number(pid)] != null ? roster[Number(pid)] : slotLabel(pid);
+      const targetName = mid => {
+        const row = (bossList || []).find(item => String(item.id) === String(mid));
+        return row ? row.name : "Monster " + (Number(mid) + 1);
+      };
+
+      for (let index = 0; index < events.length; index++) {
+        const event = events[index] || {};
+        const data = event.data || {};
+        const pmap = data.pMap || {};
+        const explicit = [];
+        const manaSpent = [];
+        const nonHealed = [];
+
+        for (const [pid, record] of Object.entries(pmap)) {
+          const name = nameFor(pid);
+          participants.add(name);
+          const previous = playerState.get(pid) || {};
+          const skill = recordSkill(record);
+          const advanced = Object.prototype.hasOwnProperty.call(record, "atkCounter") && Number(record.atkCounter) > Number(previous.atkCounter == null ? -1 : previous.atkCounter);
+          const attackingSkill = skill && !UTILITY.has(skill);
+          if (attackingSkill || record.isAutoAtk || advanced) {
+            if (attackingSkill) currentSkill.set(pid, skill);
+            else if (record.isAutoAtk) currentSkill.set(pid, "auto_attack");
+            explicit.push(pid);
+          }
+          if (skill && Object.prototype.hasOwnProperty.call(record, "atkCounter")) abilityCasts.set(name + "|" + record.atkCounter, skill);
+          if (Object.prototype.hasOwnProperty.call(record, "cMP") && Object.prototype.hasOwnProperty.call(previous, "cMP") && Number(record.cMP) < Number(previous.cMP)) manaSpent.push(pid);
+          if (!(Object.prototype.hasOwnProperty.call(record, "cHP") && Object.prototype.hasOwnProperty.call(previous, "cHP") && Number(record.cHP) > Number(previous.cHP))) nonHealed.push(pid);
+          if (Object.prototype.hasOwnProperty.call(record, "dmgCounter")) {
+            if (!incomingCounters.has(name)) incomingCounters.set(name, new Set());
+            incomingCounters.get(name).add(Number(record.dmgCounter));
+            incomingCrits.set(name, Math.max(incomingCrits.get(name) || 0, Number(record.critCounter || 0)));
+          }
+          if (record.isActive === false || Number(record.cHP) === 0) {
+            if (Object.prototype.hasOwnProperty.call(record, "dmgCounter")) {
+              if (!deathKeys.has(name)) deathKeys.set(name, new Set());
+              deathKeys.get(name).add(Number(record.dmgCounter));
+            } else deathFallback.add(name);
+          }
+        }
+
+        let candidates;
+        if (explicit.length) candidates = explicit;
+        else if (manaSpent.length) candidates = manaSpent;
+        else if (Object.keys(pmap).length === 1) candidates = Object.keys(pmap);
+        else candidates = nonHealed.length ? nonHealed : Object.keys(pmap);
+        const candidateNames = Array.from(new Set(candidates.map(nameFor)));
+        const candidateSkills = {};
+        for (const pid of candidates) candidateSkills[nameFor(pid)] = currentSkill.get(pid) || "unknown";
+
+        for (const [mid, mrec] of monsterRecords(event)) {
+          if (!monsterDamageEvents.has(mid)) monsterDamageEvents.set(mid, new Map());
+          if (!monsterAttacks.has(mid)) monsterAttacks.set(mid, new Map());
+          if (Object.prototype.hasOwnProperty.call(mrec, "atkCounter") && Object.prototype.hasOwnProperty.call(mrec, "int")) monsterAttacks.get(mid).set(Number(mrec.atkCounter), Number(mrec.int));
+          if (Object.prototype.hasOwnProperty.call(mrec, "dmgCounter") && Object.prototype.hasOwnProperty.call(mrec, "cHP")) {
+            const counter = Number(mrec.dmgCounter);
+            const occurrence = {
+              counter,
+              hp: Number(mrec.cHP),
+              max_hp: mrec.mHP == null ? null : Number(mrec.mHP),
+              crit_counter: Number(mrec.critCounter || 0),
+              candidates: candidateNames,
+              skills: candidateSkills,
+              pmap_len: Object.keys(pmap).length
+            };
+            const existing = monsterDamageEvents.get(mid).get(counter);
+            if (!existing || candidateNames.length < existing.candidates.length || (candidateNames.length === existing.candidates.length && occurrence.pmap_len > existing.pmap_len)) monsterDamageEvents.get(mid).set(counter, occurrence);
+          }
+        }
+
+        for (const [pid, record] of Object.entries(pmap)) playerState.set(pid, Object.assign({}, playerState.get(pid) || {}, record));
+        if (index && index % 5000 === 0) {
+          setStatus("Reconstructing tier " + tier + "…", progressBase + progressSpan * index / events.length);
+          await yieldFrame();
+        }
+      }
+
+      const hits = [];
+      const monsters = [];
+      for (const [mid, records] of Array.from(monsterDamageEvents.entries()).sort((a, b) => Number(a[0]) - Number(b[0]))) {
+        const ordered = Array.from(records.values()).sort((a, b) => a.counter - b.counter);
+        if (!ordered.length) continue;
+        const maxHpRow = ordered.find(row => row.max_hp);
+        const maxHp = maxHpRow ? maxHpRow.max_hp : ordered[0].hp;
+        let previousHp = maxHp;
+        let previousCounter = 0;
+        let previousCrit = 0;
+        for (const row of ordered) {
+          const counterJump = Math.max(1, row.counter - previousCounter);
+          const critJump = Math.min(counterJump, Math.max(0, row.crit_counter - previousCrit));
+          hits.push({
+            tier,
+            monster_id: String(mid),
+            target_name: targetName(mid),
+            counter: row.counter,
+            counter_jump: counterJump,
+            crit_jump: critJump,
+            damage: Math.max(0, previousHp - row.hp),
+            candidates: row.candidates,
+            candidate_skills: row.skills
+          });
+          previousHp = row.hp;
+          previousCounter = row.counter;
+          previousCrit = row.crit_counter;
+        }
+        const finalHp = ordered[ordered.length - 1].hp;
+        monsters.push({id: String(mid), name: targetName(mid), max_hp: maxHp, final_hp: finalHp, damage: maxHp - finalHp, completed: finalHp === 0, monster_damage_counter: ordered[ordered.length - 1].counter});
+      }
+      if (!monsters.length) throw new Error("Tier " + tier + " has no monster damage records.");
+
+      const deaths = new Map();
+      for (const name of new Set([...deathKeys.keys(), ...deathFallback])) deaths.set(name, (deathKeys.get(name) || new Set()).size || (deathFallback.has(name) ? 1 : 0));
+      const incoming_splats = new Map();
+      for (const [name, counters] of incomingCounters) incoming_splats.set(name, counters.size ? Math.max(...counters) : 0);
+      const perMonsterDurations = Array.from(monsterAttacks.values()).map(attacks => Array.from(attacks.values()).reduce((a, b) => a + b, 0) / 1000000000);
+      const durationSeconds = Math.max(...perMonsterDurations, 0);
+      return {
+        tier,
+        max_hp: monsters.reduce((sum, monster) => sum + monster.max_hp, 0),
+        final_hp: monsters.reduce((sum, monster) => sum + monster.final_hp, 0),
+        damage: monsters.reduce((sum, monster) => sum + monster.damage, 0),
+        duration: durationSeconds,
+        completed: monsters.every(monster => monster.completed),
+        monster_damage_counter: monsters.reduce((sum, monster) => sum + monster.monster_damage_counter, 0),
+        monsters,
+        hits,
+        ability_casts: abilityCasts,
+        deaths,
+        incoming_splats,
+        incoming_crits: incomingCrits,
+        participants: Array.from(participants)
+      };
+    }
+
+    function blankMetrics() {
+      return {damage: 0, splats: 0, hits: 0, crits: 0};
+    }
+
+    function allocate(tiers) {
+      const soloValues = new Map();
+      const playerValues = new Map();
+      for (const tier of tiers) for (const hit of tier.hits) {
+        if (hit.damage > 0 && hit.candidates.length === 1) {
+          const name = hit.candidates[0];
+          const skill = hit.candidate_skills[name] || "unknown";
+          const value = hit.damage / Math.max(1, hit.counter_jump);
+          const key = name + "|" + skill;
+          if (!soloValues.has(key)) soloValues.set(key, []);
+          if (!playerValues.has(name)) playerValues.set(name, []);
+          soloValues.get(key).push(value);
+          playerValues.get(name).push(value);
+        }
+      }
+      const globalMedian = median(Array.from(playerValues.values()).flat());
+      const cube = new Map();
+      const modeAllocated = {confirmed: 0, conservative: 0, estimated: 0};
+      let unattributed = 0, multiparty = 0, ambiguousSkill = 0;
+
+      function cellFor(name, tier, target) {
+        if (!cube.has(name)) cube.set(name, new Map());
+        const cells = cube.get(name);
+        const key = String(tier) + "\u001f" + target;
+        if (!cells.has(key)) {
+          cells.set(key, {
+            tier,
+            target,
+            modes: {confirmed: blankMetrics(), conservative: blankMetrics(), estimated: blankMetrics()},
+            skills: new Map()
+          });
+        }
+        return cells.get(key);
+      }
+
+      for (const tier of tiers) for (const hit of tier.hits) {
+        const candidates = hit.candidates;
+        if (!candidates.length) { unattributed += hit.damage; continue; }
+        if (candidates.length > 1) multiparty += hit.damage;
+        if (hit.counter_jump > 1 || candidates.length > 1) ambiguousSkill += hit.damage;
+        const weights = candidates.map(name => {
+          const skill = hit.candidate_skills[name] || "unknown";
+          return median(soloValues.get(name + "|" + skill) || playerValues.get(name) || [globalMedian]);
+        });
+        const totalWeight = weights.reduce((a, b) => a + b, 0) || candidates.length;
+        const exact = candidates.length === 1 && hit.counter_jump === 1;
+        candidates.forEach((name, index) => {
+          const fraction = weights[index] / totalWeight;
+          const estimatedDamage = hit.damage * fraction;
+          const conservativeDamage = estimatedDamage / Math.max(1, hit.counter_jump);
+          const skill = hit.candidate_skills[name] || "unknown";
+          const values = {
+            estimated: {
+              damage: estimatedDamage,
+              splats: hit.counter_jump / candidates.length,
+              hits: hit.damage > 0 ? hit.counter_jump / candidates.length : 0,
+              crits: hit.crit_jump / candidates.length
+            },
+            conservative: {
+              damage: conservativeDamage,
+              splats: 1,
+              hits: hit.damage > 0 ? 1 : 0,
+              crits: Math.min(1, hit.crit_jump / Math.max(1, hit.counter_jump))
+            },
+            confirmed: {
+              damage: exact ? hit.damage : 0,
+              splats: exact ? 1 : 0,
+              hits: exact && hit.damage > 0 ? 1 : 0,
+              crits: exact ? hit.crit_jump : 0
+            }
+          };
+          const cell = cellFor(name, tier.tier, hit.target_name || "Boss");
+          if (!cell.skills.has(skill)) cell.skills.set(skill, {confirmed: 0, conservative: 0, estimated: 0});
+          const skillModes = cell.skills.get(skill);
+          for (const method of Object.keys(values)) {
+            const current = cell.modes[method];
+            const value = values[method];
+            current.damage += value.damage;
+            current.splats += value.splats;
+            current.hits += value.hits;
+            current.crits += value.crits;
+            skillModes[method] += value.damage;
+            modeAllocated[method] += value.damage;
+          }
+        });
+      }
+      return {
+        cube,
+        diagnostics: {
+          unattributed_damage: unattributed,
+          multiparty_damage: multiparty,
+          ambiguous_skill_damage: ambiguousSkill,
+          mode_allocated: modeAllocated
+        }
+      };
+    }
+
+    function buildReport(tiers, characters, namesAvailable, sourceType, bosses) {
+      bosses = bosses || new Map();
+      const allocation = allocate(tiers);
+      const allNames = new Set(characters.keys());
+      for (const tier of tiers) for (const name of tier.participants) allNames.add(name);
+      for (const name of allNames) if (!characters.has(name)) characters.set(name, emptyCharacter(name));
+
+      const totalDuration = tiers.reduce((sum, tier) => sum + tier.duration, 0);
+      const totalDamage = tiers.reduce((sum, tier) => sum + tier.damage, 0);
+      const castsByPlayerTier = new Map();
+      const survivalByPlayerTier = new Map();
+      for (const tier of tiers) {
+        for (const [key, skill] of tier.ability_casts) {
+          const name = key.split("|")[0];
+          if (!castsByPlayerTier.has(name)) castsByPlayerTier.set(name, new Map());
+          const byTier = castsByPlayerTier.get(name);
+          if (!byTier.has(tier.tier)) byTier.set(tier.tier, new Map());
+          const skills = byTier.get(tier.tier);
+          skills.set(skill, (skills.get(skill) || 0) + 1);
+        }
+        const survivalNames = new Set([...tier.deaths.keys(), ...tier.incoming_splats.keys(), ...tier.incoming_crits.keys()]);
+        for (const name of survivalNames) {
+          if (!survivalByPlayerTier.has(name)) survivalByPlayerTier.set(name, {});
+          survivalByPlayerTier.get(name)[String(tier.tier)] = {
+            deaths: tier.deaths.get(name) || 0,
+            incoming_splats: tier.incoming_splats.get(name) || 0,
+            incoming_crits: tier.incoming_crits.get(name) || 0
+          };
+        }
+      }
+
+      const players = [];
+      for (const name of allNames) {
+        const character = characters.get(name);
+        const metricCells = allocation.cube.get(name) || new Map();
+        const castTiers = castsByPlayerTier.get(name) || new Map();
+        const skillIds = new Set(Object.keys(character.abilities || {}));
+        for (const cell of metricCells.values()) for (const skill of cell.skills.keys()) skillIds.add(skill);
+        for (const tierSkills of castTiers.values()) for (const skill of tierSkills.keys()) skillIds.add(skill);
+        const skillCatalog = Array.from(skillIds).map(id => ({
+          id,
+          name: id === "unknown" ? "Unresolved / Auto" : pretty(id),
+          category: OFFENSIVE.has(id) ? "offensive" : UTILITY.has(id) ? "utility" : "other",
+          level: character.abilities && character.abilities[id]
+        }));
+        const abilitySet = new Set(Object.keys(character.abilities || {}));
+        let role = "DPS";
+        if (["provoke", "toughness", "spike_shell", "invincible", "guardian_aura"].some(id => abilitySet.has(id))) role = "Tank";
+        else if (["revive", "rejuvenate", "natures_veil"].some(id => abilitySet.has(id))) role = "Healer";
+        else if (["critical_aura", "mystic_aura", "fierce_aura", "speed_aura"].some(id => abilitySet.has(id))) role = "Support";
+        players.push(Object.assign({}, character, {
+          role,
+          metric_cube: Array.from(metricCells.values()),
+          casts_by_tier: Object.fromEntries(Array.from(castTiers.entries()).map(([tier, skills]) => [String(tier), Object.fromEntries(skills)])),
+          survival_by_tier: survivalByPlayerTier.get(name) || {},
+          skill_catalog: skillCatalog,
+          skill_telemetry: Object.keys(character.abilities || {}).length > 0 || castTiers.size > 0
+        }));
+      }
+
+      const publicTiers = tiers.map(tier => {
+        const bossRows = bosses.get(tier.tier) || [];
+        const monsterRows = (tier.monsters || []).map(monster => Object.assign({}, monster, bossRows.find(row => String(row.id) === String(monster.id)) || {}));
+        return {tier: tier.tier, max_hp: tier.max_hp, final_hp: tier.final_hp, damage: tier.damage, duration: tier.duration, completed: tier.completed, monster_damage_counter: tier.monster_damage_counter, monsters: monsterRows};
+      });
+      allocation.diagnostics.unattributed_share = totalDamage ? allocation.diagnostics.unattributed_damage / totalDamage : 0;
+      allocation.diagnostics.multiparty_share = totalDamage ? allocation.diagnostics.multiparty_damage / totalDamage : 0;
+      allocation.diagnostics.ambiguous_skill_share = totalDamage ? allocation.diagnostics.ambiguous_skill_damage / totalDamage : 0;
+      allocation.diagnostics.mode_coverage = Object.fromEntries(Object.entries(allocation.diagnostics.mode_allocated).map(([key, value]) => [key, totalDamage ? value / totalDamage : 0]));
+      return {
+        summary: {players: players.length, tiers_seen: tiers.length, tiers_completed: tiers.filter(t => t.completed).length, total_damage: totalDamage, total_duration_seconds: totalDuration, raid_dps: totalDuration ? totalDamage / totalDuration : 0, last_tier_remaining_hp: publicTiers.length ? publicTiers[publicTiers.length - 1].final_hp : 0, targets: Math.max(...publicTiers.map(tier => tier.monsters.length), 0), loadouts: players.filter(player => player.loadout_available).length, aura_duplicates: players.filter(player => player.aura_duplicate).length},
+        players,
+        tiers: publicTiers,
+        diagnostics: allocation.diagnostics,
+        names_available: namesAvailable,
+        source_type: sourceType
+      };
+    }
+
+    function computeView(base, filters) {
+      const method = ATTRIBUTION[filters.method] ? filters.method : "conservative";
+      const selectedTiers = base.tiers.filter(tier => filters.tier === "all" || String(tier.tier) === String(filters.tier));
+      const tierIds = new Set(selectedTiers.map(tier => String(tier.tier)));
+      const duration = selectedTiers.reduce((sum, tier) => sum + tier.duration, 0);
+      const search = String(filters.search || "").trim().toLowerCase();
+
+      let players = base.players.map(player => {
+        const totals = {confirmed: blankMetrics(), conservative: blankMetrics(), estimated: blankMetrics()};
+        const tierMetrics = {};
+        const skillDamage = new Map();
+        const targetDamage = new Map();
+        for (const tier of selectedTiers) tierMetrics[String(tier.tier)] = blankMetrics();
+        for (const cell of player.metric_cube || []) {
+          if (!tierIds.has(String(cell.tier))) continue;
+          if (filters.target !== "all" && cell.target !== filters.target) continue;
+          for (const mode of Object.keys(totals)) {
+            for (const key of Object.keys(totals[mode])) totals[mode][key] += cell.modes[mode][key] || 0;
+          }
+          const chosenCell = cell.modes[method];
+          const tm = tierMetrics[String(cell.tier)];
+          for (const key of Object.keys(tm)) tm[key] += chosenCell[key] || 0;
+          targetDamage.set(cell.target, (targetDamage.get(cell.target) || 0) + chosenCell.damage);
+          for (const [skill, modeDamage] of cell.skills) skillDamage.set(skill, (skillDamage.get(skill) || 0) + (modeDamage[method] || 0));
+        }
+
+        const casts = new Map();
+        for (const tierId of tierIds) for (const [skill, count] of Object.entries(player.casts_by_tier[tierId] || {})) casts.set(skill, (casts.get(skill) || 0) + count);
+        const skillIds = new Set(player.skill_catalog.map(skill => skill.id));
+        for (const skill of skillDamage.keys()) skillIds.add(skill);
+        for (const skill of casts.keys()) skillIds.add(skill);
+        const catalog = new Map(player.skill_catalog.map(skill => [skill.id, skill]));
+        const skills = Array.from(skillIds).map(id => {
+          const baseSkill = catalog.get(id) || {id, name: id === "unknown" ? "Unresolved / Auto" : pretty(id), category: OFFENSIVE.has(id) ? "offensive" : UTILITY.has(id) ? "utility" : "other", level: null};
+          return Object.assign({}, baseSkill, {casts: casts.get(id) || 0, damage: skillDamage.get(id) || 0});
+        }).sort((a, b) => (a.category === "offensive" ? 0 : a.category === "utility" ? 1 : 2) - (b.category === "offensive" ? 0 : b.category === "utility" ? 1 : 2) || b.damage - a.damage || b.casts - a.casts);
+
+        let deaths = 0, incomingSplats = 0, incomingCrits = 0;
+        const deathTiers = [];
+        for (const tierId of tierIds) {
+          const survival = player.survival_by_tier[tierId] || {};
+          deaths += survival.deaths || 0;
+          incomingSplats += survival.incoming_splats || 0;
+          incomingCrits += survival.incoming_crits || 0;
+          if (survival.deaths) deathTiers.push(Number(tierId));
+        }
+        const chosen = totals[method];
+        const confirmedDamage = totals.confirmed.damage;
+        const estimatedDamage = totals.estimated.damage;
+        const tierStats = {};
+        for (const tier of selectedTiers) {
+          const value = tierMetrics[String(tier.tier)] || blankMetrics();
+          tierStats[String(tier.tier)] = {
+            damage: value.damage,
+            dps: tier.duration ? value.damage / tier.duration : 0,
+            damage_splats: value.splats,
+            hit_splats: value.hits,
+            hit_rate: value.splats ? value.hits / value.splats : 0,
+            outgoing_crits: value.crits,
+            crit_rate: value.hits ? value.crits / value.hits : 0
+          };
+        }
+        return Object.assign({}, player, {
+          damage: chosen.damage,
+          dps: duration ? chosen.damage / duration : 0,
+          damage_splats: chosen.splats,
+          hit_splats: chosen.hits,
+          hit_rate: chosen.splats ? chosen.hits / chosen.splats : 0,
+          outgoing_crits: chosen.crits,
+          crit_rate: chosen.hits ? chosen.crits / chosen.hits : 0,
+          confirmed_damage: confirmedDamage,
+          estimated_damage: estimatedDamage,
+          confidence: estimatedDamage ? confirmedDamage / estimatedDamage : 0,
+          ambiguous_damage: Math.max(0, estimatedDamage - confirmedDamage),
+          deaths,
+          death_tiers: deathTiers.sort((a, b) => a - b),
+          incoming_splats: incomingSplats,
+          incoming_crits: incomingCrits,
+          skills,
+          target_damage: Array.from(targetDamage, ([target, damage]) => ({target, damage})).sort((a, b) => b.damage - a.damage),
+          tier_stats: tierStats
+        });
+      });
+
+      players = players.filter(player => {
+        if (filters.style !== "all" && String(player.combat_style || "unknown").toLowerCase() !== filters.style) return false;
+        if (filters.role !== "all" && player.role !== filters.role) return false;
+        if (search && !player.name.toLowerCase().includes(search)) return false;
+        return true;
+      });
+      const sortKey = filters.sort || "damage";
+      players.sort((a, b) => {
+        if (sortKey === "name") return a.name.localeCompare(b.name);
+        return (b[sortKey] || 0) - (a[sortKey] || 0) || b.damage - a.damage || a.name.localeCompare(b.name);
+      });
+      players.forEach((player, index) => player.rank = index + 1);
+
+      const tiers = selectedTiers.map(tier => {
+        const monsters = (tier.monsters || []).filter(monster => filters.target === "all" || monster.name === filters.target);
+        const recordedDamage = monsters.reduce((sum, monster) => sum + monster.damage, 0);
+        const attributedDamage = players.reduce((sum, player) => sum + (player.tier_stats[String(tier.tier)] || blankMetrics()).damage, 0);
+        return Object.assign({}, tier, {
+          monsters,
+          max_hp: monsters.reduce((sum, monster) => sum + monster.max_hp, 0),
+          final_hp: monsters.reduce((sum, monster) => sum + monster.final_hp, 0),
+          damage: recordedDamage,
+          recorded_damage: recordedDamage,
+          attributed_damage: attributedDamage,
+          attributed_dps: tier.duration ? attributedDamage / tier.duration : 0,
+          coverage: recordedDamage ? attributedDamage / recordedDamage : 0,
+          completed: monsters.length ? monsters.every(monster => monster.completed) : false,
+          monster_damage_counter: monsters.reduce((sum, monster) => sum + monster.monster_damage_counter, 0)
+        });
+      });
+      const recordedDamage = tiers.reduce((sum, tier) => sum + tier.recorded_damage, 0);
+      const attributedDamage = players.reduce((sum, player) => sum + player.damage, 0);
+      const targetNames = new Set(tiers.flatMap(tier => tier.monsters.map(monster => monster.name)));
+      const summary = {
+        players: players.length,
+        all_players: base.players.length,
+        tiers_seen: tiers.length,
+        tiers_completed: tiers.filter(tier => tier.completed).length,
+        total_damage: recordedDamage,
+        attributed_damage: attributedDamage,
+        total_duration_seconds: duration,
+        raid_dps: duration ? attributedDamage / duration : 0,
+        coverage: recordedDamage ? attributedDamage / recordedDamage : 0,
+        targets: targetNames.size,
+        loadouts: players.filter(player => player.loadout_available).length,
+        aura_duplicates: players.filter(player => player.aura_duplicate).length,
+        method,
+        method_label: ATTRIBUTION[method].label
+      };
+      return Object.assign({}, base, {players, tiers, summary, filters: Object.assign({}, filters, {method})});
+    }
+
+    function scoreEvents(events) {
+      let maxDamage = -1, maxAttack = -1;
+      const counters = new Set();
+      for (const event of events) {
+        for (const [mid, rec] of monsterRecords(event)) {
+          if (rec.dmgCounter != null) { maxDamage = Math.max(maxDamage, Number(rec.dmgCounter)); counters.add(mid + "|" + Number(rec.dmgCounter)); }
+          if (rec.atkCounter != null) maxAttack = Math.max(maxAttack, Number(rec.atkCounter));
+        }
+      }
+      return [maxDamage, counters.size, maxAttack];
+    }
+    function betterScore(a, b) {
+      if (!b) return true;
+      for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return a[i] > b[i];
+      return false;
+    }
+    function tierFrom(name, events) {
+      const match = String(name).match(/tier(\d+)\.json$/i);
+      if (match) return Number(match[1]);
+      const event = events.find(row => row && row.data && row.data.tier);
+      return event ? Number(event.data.tier) : null;
+    }
+
+    async function analyseFiles(files) {
+      const canonical = new Map();
+      const fullEvents = [];
+      const allEvents = [];
+      const loadouts = {};
+      let ignoredJson = 0;
+      let processedEntries = 0;
+      let totalEntries = 0;
+      const inputs = [];
+      const processPayload = (name, payload) => {
+        if (payload && !Array.isArray(payload) && Array.isArray(payload.events)) payload = payload.events;
+        if (payload && !Array.isArray(payload) && payload.type) payload = [payload];
+        if (!Array.isArray(payload)) {
+          const values = payload && typeof payload === "object" ? Object.values(payload) : [];
+          if (values.some(value => value && typeof value === "object" && Array.isArray(value.abilities) && value.stats)) {
+            Object.assign(loadouts, payload);
+          } else {
+            ignoredJson++;
+          }
+          return;
+        }
+        allEvents.push(...payload);
+        const hasRoster = payload.some(event => event && event.type === "new_guild_battle");
+        if (hasRoster) {
+          if (!fullEvents.length) canonical.clear();
+          fullEvents.push(...payload);
+        } else if (!fullEvents.length) {
+          const tier = tierFrom(name, payload);
+          if (tier != null) {
+            const score = scoreEvents(payload);
+            const existing = canonical.get(tier);
+            if (!existing || betterScore(score, existing.score)) canonical.set(tier, {events: payload, score, name});
+          } else if (!payload.some(event => event && event.type === "battle_unit_fetched")) {
+            ignoredJson++;
+          }
+        }
+      };
+      for (const file of files) {
+        setStatus("Opening " + file.name + "…", 3);
+        if (file.name.toLowerCase().endsWith(".zip")) {
+          if (!window.JSZip) throw new Error("ZIP library did not load. Use direct JSON files or reopen the page with an internet connection.");
+          const zip = await window.JSZip.loadAsync(file);
+          const entries = Object.values(zip.files).filter(entry => !entry.dir && entry.name.toLowerCase().endsWith(".json"));
+          if (!entries.length) throw new Error(file.name + " contains no JSON files.");
+          inputs.push(...entries.map(entry => ({name: entry.name, read: () => entry.async("string")})));
+          totalEntries += entries.length;
+        } else {
+          inputs.push({name: file.name, read: () => file.text()});
+          totalEntries++;
+        }
+      }
+      for (const input of inputs) {
+        setStatus("Reading " + input.name + "…", 5 + 35 * processedEntries / Math.max(1, totalEntries));
+        let payload;
+        try {
+          payload = JSON.parse(await input.read());
+        } catch (error) {
+          throw new Error(input.name + " is not valid JSON.");
+        }
+        processPayload(input.name, payload);
+        processedEntries++;
+        await yieldFrame();
+      }
+
+      let tiers = [], characters = new Map(), bosses = new Map(), namesAvailable = false, sourceType, battleUnitStats;
+      if (fullEvents.length) {
+        sourceType = "Full guild-events export";
+        namesAvailable = true;
+        const rosterData = buildRosters(fullEvents);
+        characters = rosterData.characters;
+        bosses = rosterData.bosses;
+        battleUnitStats = mergeBattleUnitFetched(characters, allEvents);
+        const loadoutCount = mergeLoadouts(characters, loadouts);
+        sourceType += " · " + (battleUnitStats.events ? "battle_unit_fetched used" : loadoutCount ? "loadout_data used" : "roster data used");
+        const grouped = new Map();
+        for (const event of fullEvents) if (event && event.type === "guild_battle_updated" && event.data && event.data.tier) {
+          const tier = Number(event.data.tier);
+          if (!grouped.has(tier)) grouped.set(tier, []);
+          grouped.get(tier).push(event);
+        }
+        const ids = Array.from(grouped.keys()).sort((a, b) => a - b);
+        const fallbackRoster = rosterData.rosters.size ? rosterData.rosters.values().next().value : null;
+        const fallbackBosses = bosses.size ? bosses.values().next().value : [];
+        for (let index = 0; index < ids.length; index++) {
+          const tier = ids[index];
+          tiers.push(await reconstructTier(tier, rosterData.rosters.get(tier) || fallbackRoster, grouped.get(tier), 42 + 45 * index / ids.length, 45 / ids.length, bosses.get(tier) || fallbackBosses));
+        }
+      } else {
+        sourceType = "Encounter bundle";
+        battleUnitStats = mergeBattleUnitFetched(characters, allEvents);
+        mergeLoadouts(characters, loadouts);
+        namesAvailable = characters.size > 0;
+        sourceType += namesAvailable ? " · player metadata enriched" : " · slot IDs used";
+        const ids = Array.from(canonical.keys()).sort((a, b) => a - b);
+        if (!ids.length) throw new Error("No supported encounters were found.");
+        for (let index = 0; index < ids.length; index++) {
+          const tier = ids[index];
+          tiers.push(await reconstructTier(tier, null, canonical.get(tier).events, 42 + 45 * index / ids.length, 45 / ids.length, []));
+        }
+      }
+      setStatus("Calculating player attribution…", 90);
+      await yieldFrame();
+      const built = buildReport(tiers, characters, namesAvailable, sourceType, bosses);
+      built.ignored_json_files = ignoredJson;
+      built.battle_unit_fetched = battleUnitStats || {events: 0, units: 0, players: 0, equipment_items: 0};
+      built.input_files = files.length;
+      return built;
+    }
+
+    function stat(label, value, hint) {
+      return '<div class="mw-stat"><span>' + esc(label) + '</span><strong>' + esc(value) + '</strong><small class="mw-note">' + esc(hint || "") + '</small></div>';
+    }
+    function pageHeader(title, subtitle, badge) {
+      return '<div class="mw-page-title"><div><h2>' + esc(title) + '</h2><p class="mw-sub">' + esc(subtitle) + '</p></div>' + (badge ? '<span class="mw-badge">' + esc(badge) + '</span>' : '') + '</div>';
+    }
+    function rateClass(value) { return value >= .75 ? "mw-good" : value < .60 ? "mw-bad" : ""; }
+    function accuracyKey(style) {
+      const value = String(style || "").toLowerCase();
+      if (["stab", "slash", "smash", "ranged", "magic"].includes(value)) return value + "AccuracyRating";
+      return null;
+    }
+
+    function renderOverview(r) {
+      const rows = r.players.map(p => '<tr><td class="mw-left"><span class="mw-rank">#' + p.rank + '</span> &nbsp;' + esc(p.name) + '</td><td>' + esc(p.role || '—') + '</td><td>' + esc(pretty(p.combat_style || 'unknown')) + '</td><td>' + number(p.damage, 0) + '</td><td>' + number(p.dps, 1) + '</td><td class="' + rateClass(p.hit_rate) + '">' + percent(p.hit_rate) + '</td><td>' + percent(p.confidence) + '</td><td>' + number(p.ambiguous_damage, 0) + '</td><td class="' + (p.deaths ? 'mw-bad' : 'mw-good') + '">' + p.deaths + '</td></tr>').join("");
+      const grouped = key => {
+        const map = new Map();
+        for (const player of r.players) {
+          const value = player[key] || "Unknown";
+          if (!map.has(value)) map.set(value, {name: value, players: 0, damage: 0, splats: 0, hits: 0});
+          const row = map.get(value);
+          row.players++;
+          row.damage += player.damage;
+          row.splats += player.damage_splats;
+          row.hits += player.hit_splats;
+        }
+        return Array.from(map.values()).sort((a, b) => b.damage - a.damage);
+      };
+      const groupTable = (items, title) => '<div class="mw-panel"><h3>' + esc(title) + '</h3><div class="mw-table-wrap" style="margin-top:10px"><table><thead><tr><th>Group</th><th>Players</th><th>Damage</th><th>Share</th><th>Hit</th></tr></thead><tbody>' + (items.length ? items.map(row => '<tr><td class="mw-left">' + esc(pretty(row.name)) + '</td><td>' + row.players + '</td><td>' + number(row.damage, 0) + '</td><td>' + percent(r.summary.attributed_damage ? row.damage / r.summary.attributed_damage : 0) + '</td><td>' + percent(row.splats ? row.hits / row.splats : 0) + '</td></tr>').join("") : '<tr><td class="mw-empty" colspan="5">No matching players.</td></tr>') + '</tbody></table></div></div>';
+      return pageHeader("Raid Overview", "Player attribution and ranking under the active filters", r.summary.method_label) +
+        '<div class="mw-grid">' + stat("Recorded HP loss", compact(r.summary.total_damage), "selected targets") + stat("Attributed damage", compact(r.summary.attributed_damage), r.summary.method_label) + stat("Combat time", clock(r.summary.total_duration_seconds), "selected tiers") + stat("Attributed DPS", number(r.summary.raid_dps, 1), "damage / combat time") + stat("Visible players", number(r.summary.players, 0), r.summary.all_players + " in archive") + stat("Top player", r.players[0] ? r.players[0].name : "—", r.players[0] ? compact(r.players[0].damage) + " damage" : "") + stat("Coverage", percent(r.summary.coverage), "attributed / HP loss") + '</div>' +
+        '<div class="mw-table-wrap"><table><thead><tr><th>Rank / nickname</th><th>Role</th><th>Style</th><th>Damage</th><th>DPS</th><th>Hit</th><th>Confirmed share</th><th>Ambiguous</th><th>Deaths</th></tr></thead><tbody>' + (rows || '<tr><td class="mw-empty" colspan="9">No players match the active filters.</td></tr>') + '</tbody></table></div>' +
+        '<div class="mw-two">' + groupTable(grouped("combat_style"), "Output by combat style") + groupTable(grouped("role"), "Output by inferred role") + '</div>' +
+        '<div class="mw-foot">Confirmed share = exact single-splat damage ÷ legacy estimated damage. Ambiguous = legacy estimate minus confirmed damage. Hit and crit use the same attribution method as Damage and DPS.</div>';
+    }
+
+    function renderSkillDetails(player) {
+      if (!player) return '<div class="mw-empty">No player matches the active filters.</div>';
+      const offensive = player.skills.filter(skill => skill.category === "offensive" || (skill.category === "other" && skill.damage > 0));
+      const utility = player.skills.filter(skill => skill.category === "utility" || (skill.category === "other" && skill.damage <= 0));
+      const table = (items, title) => '<div class="mw-panel"><h3>' + esc(title) + '</h3><div class="mw-table-wrap" style="margin-top:10px"><table><thead><tr><th>Skill</th><th>Level</th><th>Casts</th><th>Damage</th><th>Share</th></tr></thead><tbody>' + (items.length ? items.map(skill => '<tr><td class="mw-left">' + esc(skill.name) + '</td><td>' + (skill.level == null ? '—' : number(skill.level, 0)) + '</td><td>' + (skill.casts || '—') + '</td><td>' + number(skill.damage, 0) + '</td><td>' + percent(player.damage ? skill.damage / player.damage : 0) + '</td></tr>').join("") : '<tr><td class="mw-empty" colspan="5">No observed entries.</td></tr>') + '</tbody></table></div></div>';
+      const targets = '<div class="mw-panel"><h3>Damage by target</h3><div class="mw-table-wrap" style="margin-top:10px"><table><thead><tr><th>Target</th><th>Damage</th><th>Share</th></tr></thead><tbody>' + (player.target_damage.length ? player.target_damage.map(row => '<tr><td class="mw-left">' + esc(row.target) + '</td><td>' + number(row.damage, 0) + '</td><td>' + percent(player.damage ? row.damage / player.damage : 0) + '</td></tr>').join("") : '<tr><td class="mw-empty" colspan="3">No attributed target damage.</td></tr>') + '</tbody></table></div></div>';
+      const equipment = '<div class="mw-panel"><h3>Equipment snapshot</h3><div class="mw-table-wrap" style="margin-top:10px"><table><thead><tr><th>Slot</th><th>Item</th><th>Enhancement</th><th>Count</th></tr></thead><tbody>' + ((player.equipment || []).length ? player.equipment.map(item => '<tr><td class="mw-left">' + esc(pretty(tail(item.slot) || "unknown")) + '</td><td class="mw-left">' + esc(pretty(item.item)) + '</td><td>' + (item.enhancement_level == null ? '—' : '+' + number(item.enhancement_level, 0)) + '</td><td>' + (item.count == null ? '—' : number(item.count, 0)) + '</td></tr>').join("") : '<tr><td class="mw-empty" colspan="4">No equipment rows in the supplied data.</td></tr>') + '</tbody></table></div></div>';
+      const duplicate = player.aura_duplicate ? '<div class="mw-foot mw-bad">Duplicate aura detected: ' + esc(player.aura_duplicate_best || 'a stronger copy exists in the raid') + '.</div>' : '';
+      return '<div class="mw-grid">' + stat("Damage", number(player.damage, 0), "active filters") + stat("DPS", number(player.dps, 1), "selected tiers") + stat("Hit", percent(player.hit_rate), "active method") + stat("Confirmed share", percent(player.confidence), "exact / estimated") + stat("Style", pretty(player.combat_style || "unknown"), player.role || "") + stat("Max Accuracy", player.max_accuracy == null ? "—" : number(player.max_accuracy, 1), "loadout snapshot") + stat("Combat level", player.combat_level == null ? "—" : number(player.combat_level, 1), "loadout snapshot") + stat("Cast speed", player.cast_speed == null ? "—" : number(player.cast_speed, 3), "loadout snapshot") + '</div><div class="mw-two">' + table(offensive, "Offensive skills") + table(utility, "Buffs / support") + '</div><div class="mw-two">' + targets + equipment + '</div>' + duplicate;
+    }
+
+    function renderSkills(r) {
+      if (!r.players.length) return pageHeader("Builds & Skill Telemetry", "Loadouts, abilities, casts, and attributed target damage", r.summary.method_label) + '<div class="mw-empty">No players match the active filters.</div>';
+      const telemetry = r.players.filter(player => player.skill_telemetry);
+      const first = r.players.find(player => player.name === selectedPlayerName) || telemetry[0] || r.players[0];
+      selectedPlayerName = first.name;
+      const options = r.players.map(player => '<option value="' + esc(player.name) + '"' + (player.name === first.name ? ' selected' : '') + '>' + esc(player.name) + (player.loadout_available ? " · loadout" : player.skill_telemetry ? " · telemetry" : "") + '</option>').join("");
+      const keyDebuffs = new Set(["puncture", "maim", "crippling_slash", "fracturing_impact", "pestilent_shot", "toxic_pollen", "entangle"]);
+      const debuffRows = r.players.flatMap(player => player.skills.filter(skill => keyDebuffs.has(skill.id)).map(skill => '<tr><td class="mw-left">' + esc(skill.name) + '</td><td class="mw-left">' + esc(player.name) + '</td><td>' + (skill.level == null ? '—' : number(skill.level, 0)) + '</td><td>' + (skill.casts || '—') + '</td><td>' + number(skill.damage, 0) + '</td></tr>')).join("");
+      const duplicateRows = r.players.filter(player => player.aura_duplicate).map(player => '<tr><td class="mw-left">' + esc(player.name) + '</td><td class="mw-left">' + esc(player.aura_duplicate_best || 'Stronger duplicate present') + '</td></tr>').join("");
+      const sourceRows = r.players.map(player => '<tr><td class="mw-left">' + esc(player.name) + '</td><td class="mw-left">' + esc((player.data_sources || []).join(" + ") || "telemetry only") + '</td><td>' + (player.equipment || []).length + '</td><td>' + Object.keys(player.abilities || {}).length + '</td></tr>').join("");
+      return pageHeader("Builds & Skill Telemetry", "Loadouts, abilities, casts, and attributed target damage", r.summary.method_label) +
+        '<div class="mw-selector"><label>Player<select id="mw-player-select" class="form-select">' + options + '</select></label><span class="mw-note">Damage follows all active filters. Casts follow the tier filter because cast events do not identify a target.</span></div>' +
+        '<div id="mw-skill-details">' + renderSkillDetails(first) + '</div>' +
+        '<div class="mw-two"><div class="mw-panel"><h3>Raid debuff coverage</h3><div class="mw-table-wrap" style="margin-top:10px"><table><thead><tr><th>Ability</th><th>Player</th><th>Level</th><th>Casts</th><th>Damage</th></tr></thead><tbody>' + (debuffRows || '<tr><td class="mw-empty" colspan="5">No key debuffs found in the filtered loadouts.</td></tr>') + '</tbody></table></div></div><div class="mw-panel"><h3>Aura conflicts</h3><div class="mw-table-wrap" style="margin-top:10px"><table><thead><tr><th>Player</th><th>Conflict</th></tr></thead><tbody>' + (duplicateRows || '<tr><td class="mw-empty" colspan="2">No duplicate aura warnings.</td></tr>') + '</tbody></table></div></div></div>' +
+        '<div class="mw-panel"><h3>Player data sources</h3><p class="mw-note" style="margin:6px 0 10px">battle_unit_fetched is always parsed when present; normalized loadout_data fields take precedence on overlap.</p><div class="mw-table-wrap"><table><thead><tr><th>Player</th><th>Sources used</th><th>Equipment rows</th><th>Abilities</th></tr></thead><tbody>' + (sourceRows || '<tr><td class="mw-empty" colspan="4">No player metadata.</td></tr>') + '</tbody></table></div></div>' +
+        '<div class="mw-foot">battle_unit_fetched events: ' + number(r.battle_unit_fetched.events, 0) + '; players enriched: ' + number(r.battle_unit_fetched.players, 0) + '. Puncture and other debuffs are visible in loadouts and casts, but exact uptime still requires explicit effect start/end events.</div>';
+    }
+
+    function renderAccuracy(r) {
+      const totalSplats = r.players.reduce((sum, p) => sum + p.damage_splats, 0);
+      const totalHits = r.players.reduce((sum, p) => sum + p.hit_splats, 0);
+      const totalCrits = r.players.reduce((sum, p) => sum + p.outgoing_crits, 0);
+      const best = r.players.slice().sort((a, b) => b.hit_rate - a.hit_rate)[0];
+      const deathCount = r.players.reduce((sum, p) => sum + p.deaths, 0);
+      const rows = r.players.map(p => '<tr><td class="mw-left">#' + p.rank + ' ' + esc(p.name) + '</td><td class="' + rateClass(p.hit_rate) + '">' + percent(p.hit_rate) + '<span class="mw-bar"><i style="width:' + Math.min(100, p.hit_rate * 100) + '%"></i></span></td><td>' + percent(p.crit_rate) + '</td><td>' + number(p.damage_splats, 1) + '</td><td>' + percent(p.confidence) + '</td><td>' + number(p.incoming_splats, 0) + '</td><td class="' + (p.deaths ? 'mw-bad' : 'mw-good') + '">' + p.deaths + '</td><td>' + (p.death_tiers.length ? p.death_tiers.map(t => 'T' + t).join(', ') : '—') + '</td></tr>').join("");
+      const rawPlayers = r.players.filter(p => p.max_accuracy != null || p.accuracy_ratings);
+      const rawPlayerRows = rawPlayers.map(p => {
+        const key = accuracyKey(p.combat_style);
+        const relevant = p.max_accuracy != null ? p.max_accuracy : key && p.accuracy_ratings && p.accuracy_ratings[key];
+        return '<tr><td class="mw-left">' + esc(p.name) + '</td><td>' + esc(p.role || '—') + '</td><td>' + esc(pretty(p.combat_style || 'unknown')) + '</td><td>' + (relevant == null ? '—' : number(relevant, 1)) + '</td><td>' + (p.combat_level == null ? '—' : number(p.combat_level, 1)) + '</td><td class="' + rateClass(p.hit_rate) + '">' + percent(p.hit_rate) + '</td><td>' + number(p.dps, 1) + '</td></tr>';
+      }).join("");
+      const bossRows = r.tiers.flatMap(t => (t.monsters || []).filter(boss => boss.accuracy_ratings).map(boss => {
+        const key = accuracyKey(boss.combat_style);
+        const relevant = key && boss.accuracy_ratings[key];
+        const evasion = boss.evasion_ratings || {};
+        return '<tr><td class="mw-left">T' + t.tier + '</td><td>' + esc(boss.name) + '</td><td>' + esc(pretty(boss.combat_style || 'unknown')) + '</td><td><strong>' + (relevant == null ? '—' : number(relevant, 1)) + '</strong></td><td>' + number(evasion.stabEvasionRating, 1) + '</td><td>' + number(evasion.smashEvasionRating, 1) + '</td><td>' + number(evasion.rangedEvasionRating, 1) + '</td><td>' + number(evasion.magicEvasionRating, 1) + '</td></tr>';
+      })).join("");
+      return pageHeader("Accuracy & Survival", "Hit rate, critical rate, incoming attacks, and recorded deaths", r.summary.method_label) +
+        '<div class="mw-grid">' + stat("Average Hit", percent(totalSplats ? totalHits / totalSplats : 0), "weighted by splats") + stat("Average Crit", percent(totalHits ? totalCrits / totalHits : 0), "among successful splats") + stat("Best observed hit", best ? best.name : "—", best ? percent(best.hit_rate) : "") + stat("Deaths", number(deathCount, 0), r.players.filter(p => p.deaths).length + " players") + '</div>' +
+        '<div class="mw-table-wrap"><table><thead><tr><th>Player</th><th>Hit Rate</th><th>Crit Rate</th><th>Outgoing splats</th><th>Confirmed share</th><th>Incoming splats</th><th>Deaths</th><th>Death tiers</th></tr></thead><tbody>' + (rows || '<tr><td class="mw-empty" colspan="8">No players match the active filters.</td></tr>') + '</tbody></table></div>' +
+        '<div class="mw-two">' +
+          '<div class="mw-panel"><h3>Player Accuracy & output</h3><p class="mw-note" style="margin:6px 0 10px">Build stats use loadout_data.json and battle_unit_fetched when present.</p><div class="mw-table-wrap"><table><thead><tr><th>Player</th><th>Role</th><th>Style</th><th>Max Acc</th><th>Combat Lv</th><th>Hit</th><th>DPS</th></tr></thead><tbody>' + (rawPlayerRows || '<tr><td class="mw-empty" colspan="7">Not present for matching players.</td></tr>') + '</tbody></table></div></div>' +
+          '<div class="mw-panel"><h3>Monster Accuracy & Evasion by Tier</h3><p class="mw-note" style="margin:6px 0 10px">Accuracy follows each monster combat style; Evasion is the defense tested by player attacks.</p><div class="mw-table-wrap"><table><thead><tr><th>Tier</th><th>Monster</th><th>Style</th><th>Accuracy</th><th>Stab Eva</th><th>Smash Eva</th><th>Ranged Eva</th><th>Magic Eva</th></tr></thead><tbody>' + (bossRows || '<tr><td class="mw-empty" colspan="8">Monster combat details are absent for this selection.</td></tr>') + '</tbody></table></div></div>' +
+        '</div>' +
+        '<div class="mw-foot">Raw Accuracy Rating is not the same as observed Hit Rate. Deaths and incoming splats can be filtered by tier, but not by target because incoming source IDs are not retained in this export.</div>';
+    }
+
+    function tierChart(tiers) {
+      if (!tiers.length) return '<div class="mw-empty">No tiers match the active filters.</div>';
+      const values = tiers.map(t => t.attributed_dps || 0);
+      const min = Math.min(...values), max = Math.max(...values);
+      const width = 1000, height = 250, left = 55, right = 20, top = 20, bottom = 42;
+      const x = index => left + (width - left - right) * (values.length === 1 ? .5 : index / (values.length - 1));
+      const y = value => top + (height - top - bottom) * (max === min ? .5 : 1 - (value - min) / (max - min));
+      const grids = [0, .25, .5, .75, 1].map(frac => { const yy = top + (height - top - bottom) * frac; const label = max - (max - min) * frac; return '<line class="grid" x1="' + left + '" y1="' + yy + '" x2="' + (width - right) + '" y2="' + yy + '"></line><text class="axistext" x="' + (left - 7) + '" y="' + (yy + 4) + '" text-anchor="end">' + number(label, 0) + '</text>'; }).join("");
+      const points = values.map((value, index) => x(index) + ',' + y(value)).join(" ");
+      const dots = tiers.map((tier, index) => '<circle class="dot ' + (tier.completed ? '' : 'partial') + '" cx="' + x(index) + '" cy="' + y(values[index]) + '" r="5"></circle><text class="axistext" x="' + x(index) + '" y="' + (height - 15) + '" text-anchor="middle">T' + tier.tier + '</text>').join("");
+      return '<svg class="mw-chart" viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Attributed DPS by tier"><title>Attributed DPS by tier</title><desc>DPS under the active attribution, tier, target, style, role, and nickname filters.</desc>' + grids + '<polyline class="series" points="' + points + '"></polyline>' + dots + '</svg>';
+    }
+
+    function renderTiers(r) {
+      let previous = null;
+      const rows = r.tiers.map(t => {
+        const dps = t.attributed_dps;
+        const ratio = previous ? dps / previous - 1 : null;
+        const delta = ratio == null ? "—" : (ratio >= 0 ? "+" : "") + number(ratio * 100, 1) + "%";
+        const deltaClass = previous == null ? "" : dps >= previous ? "mw-good" : "mw-bad";
+        previous = dps;
+        return '<tr><td class="mw-left">T' + t.tier + '</td><td><span class="mw-badge ' + (t.completed ? 'good' : 'bad') + '">' + (t.completed ? 'CLEAR' : 'PARTIAL') + '</span></td><td>' + number(t.max_hp, 0) + '</td><td>' + number(t.recorded_damage, 0) + '</td><td>' + number(t.attributed_damage, 0) + '</td><td>' + percent(t.coverage) + '</td><td>' + clock(t.duration) + '</td><td>' + number(dps, 1) + '</td><td class="' + deltaClass + '">' + delta + '</td></tr>';
+      }).join("");
+      const monsterRows = r.tiers.flatMap(t => (t.monsters || []).map(monster => {
+        const resist = monster.resistances || {};
+        const key = accuracyKey(monster.combat_style);
+        const accuracy = key && monster.accuracy_ratings ? monster.accuracy_ratings[key] : null;
+        return '<tr><td class="mw-left">T' + t.tier + '</td><td class="mw-left">' + esc(monster.name) + '</td><td>' + esc(pretty(monster.combat_style || 'unknown')) + '</td><td>' + number(monster.max_hp, 0) + '</td><td>' + number(monster.damage, 0) + '</td><td>' + number(monster.final_hp, 0) + '</td><td>' + (accuracy == null ? '—' : number(accuracy, 1)) + '</td><td>' + (resist.armor == null ? '—' : number(resist.armor, 0)) + '</td><td>' + (resist.water == null ? '—' : number(resist.water, 0)) + '</td><td>' + (resist.nature == null ? '—' : number(resist.nature, 0)) + '</td><td>' + (resist.fire == null ? '—' : number(resist.fire, 0)) + '</td></tr>';
+      })).join("");
+      return pageHeader("Tier Progression", "Recorded HP loss compared with attributed player output", r.summary.method_label) +
+        '<div class="mw-panel"><h3>Attributed DPS by tier</h3>' + tierChart(r.tiers) + '</div>' +
+        '<div class="mw-table-wrap" style="margin-top:12px"><table><thead><tr><th>Tier</th><th>Status</th><th>Target HP</th><th>HP loss</th><th>Attributed</th><th>Coverage</th><th>Time</th><th>DPS</th><th>Δ DPS</th></tr></thead><tbody>' + (rows || '<tr><td class="mw-empty" colspan="9">No tiers match the active filters.</td></tr>') + '</tbody></table></div>' +
+        '<div class="mw-panel"><h3>Monster HP, Accuracy & resistances</h3><div class="mw-table-wrap" style="margin-top:10px"><table><thead><tr><th>Tier</th><th>Monster</th><th>Style</th><th>HP</th><th>Damage</th><th>Remain</th><th>Accuracy</th><th>Armor</th><th>Water Res</th><th>Nature Res</th><th>Fire Res</th></tr></thead><tbody>' + (monsterRows || '<tr><td class="mw-empty" colspan="11">No matching monster rows.</td></tr>') + '</tbody></table></div></div>' +
+        '<div class="mw-foot">Coverage drops when conservative or confirmed attribution leaves batched damage unassigned, and also when player filters hide part of the roster.</div>';
+    }
+
+    function renderMatrix(r) {
+      const maxima = {};
+      for (const tier of r.tiers) maxima[tier.tier] = Math.max(1, ...r.players.map(p => (p.tier_stats[String(tier.tier)] || {}).dps || 0));
+      const headers = r.tiers.map(t => '<th>T' + t.tier + '<br><small>' + clock(t.duration) + (t.completed ? '' : ' · partial') + '</small></th>').join("");
+      const rows = r.players.map(p => '<tr><td class="mw-left"><span class="mw-rank">#' + p.rank + '</span> &nbsp;' + esc(p.name) + '</td>' + r.tiers.map(t => {
+        const s = p.tier_stats[String(t.tier)] || {dps: 0, hit_rate: 0};
+        const heat = Math.round(100 * s.dps / maxima[t.tier]);
+        return '<td><div class="mw-cell" style="--heat:' + heat + '"><strong>' + number(s.dps, 1) + ' DPS</strong><span class="' + rateClass(s.hit_rate) + '">' + percent(s.hit_rate) + ' Hit</span></div></td>';
+      }).join("") + '<td><strong>' + number(p.dps, 1) + '</strong></td><td class="' + rateClass(p.hit_rate) + '"><strong>' + percent(p.hit_rate) + '</strong></td><td><strong>' + percent(p.confidence) + '</strong></td></tr>').join("");
+      return pageHeader("DPS by Tier · Player Matrix", "Each tier cell uses the same attribution and player filters", r.summary.method_label) +
+        '<div class="mw-table-wrap"><table class="mw-matrix"><thead><tr><th>Rank / nickname</th>' + headers + '<th>Avg DPS</th><th>Avg Hit</th><th>Confirmed</th></tr></thead><tbody>' + (rows || '<tr><td class="mw-empty" colspan="' + (r.tiers.length + 4) + '">No players match the active filters.</td></tr>') + '</tbody></table></div>' +
+        '<div class="mw-foot">DPS = filtered attributed damage ÷ full recorded duration of that tier. Partial tiers use their recorded combat duration.</div>';
+    }
+
+    function option(value, label) {
+      return '<option value="' + esc(value) + '">' + esc(label) + '</option>';
+    }
+
+    function populateFilters(r) {
+      tierFilterEl.innerHTML = option("all", "All tiers") + r.tiers.map(tier => option(String(tier.tier), "Tier " + tier.tier)).join("");
+      const targets = Array.from(new Set(r.tiers.flatMap(tier => (tier.monsters || []).map(monster => monster.name)))).sort();
+      targetFilterEl.innerHTML = option("all", "All targets") + targets.map(target => option(target, target)).join("");
+      const styles = Array.from(new Set(r.players.map(player => String(player.combat_style || "unknown").toLowerCase()))).sort();
+      styleFilterEl.innerHTML = option("all", "All styles") + styles.map(style => option(style, pretty(style))).join("");
+      const roles = Array.from(new Set(r.players.map(player => player.role))).sort();
+      roleFilterEl.innerHTML = option("all", "All roles") + roles.map(role => option(role, role)).join("");
+      methodEl.value = filterState.method;
+      tierFilterEl.value = filterState.tier;
+      targetFilterEl.value = filterState.target;
+      styleFilterEl.value = filterState.style;
+      roleFilterEl.value = filterState.role;
+      searchFilterEl.value = filterState.search;
+      sortFilterEl.value = filterState.sort;
+      filtersEl.hidden = false;
+    }
+
+    function readFilters() {
+      filterState = {
+        method: methodEl.value,
+        tier: tierFilterEl.value,
+        target: targetFilterEl.value,
+        style: styleFilterEl.value,
+        role: roleFilterEl.value,
+        search: searchFilterEl.value,
+        sort: sortFilterEl.value
+      };
+    }
+
+    function refreshReport() {
+      if (!report) return;
+      currentView = computeView(report, filterState);
+      const renders = [renderOverview, renderSkills, renderAccuracy, renderTiers, renderMatrix];
+      pagesEl.innerHTML = renders.map((render, index) => '<article class="mw-page" data-page="' + index + '"' + (index === activePage ? '' : ' hidden') + '>' + render(currentView) + '</article>').join("");
+      methodNoteEl.textContent = ATTRIBUTION[currentView.summary.method].note;
+      filterCountEl.textContent = currentView.summary.players + " of " + currentView.summary.all_players + " players · " + currentView.summary.tiers_seen + " tier" + (currentView.summary.tiers_seen === 1 ? "" : "s");
+      activatePage(activePage);
+    }
+
+    function renderReport(r) {
+      report = r;
+      currentView = null;
+      activePage = 0;
+      selectedPlayerName = "";
+      filterState = {method: "conservative", tier: "all", target: "all", style: "all", role: "all", search: "", sort: "damage"};
+      navEl.innerHTML = PAGE_NAMES.map((name, index) => '<button class="btn" type="button" data-page-button="' + index + '" aria-pressed="' + (index === 0 ? 'true' : 'false') + '">' + (index + 1) + '. ' + esc(name) + '</button>').join("");
+      sourceBadge.textContent = r.source_type;
+      populateFilters(r);
+      workspace.hidden = false;
+      drop.hidden = true;
+      newBtn.hidden = false;
+      exportBtn.hidden = false;
+      refreshReport();
+      setStatus("Report ready · " + r.summary.players + " players · " + r.summary.tiers_seen + " tiers.", 100);
+    }
+
+    function activatePage(index) {
+      activePage = Number(index);
+      pagesEl.querySelectorAll(".mw-page").forEach(page => page.hidden = Number(page.dataset.page) !== activePage);
+      navEl.querySelectorAll("[data-page-button]").forEach(button => button.setAttribute("aria-pressed", String(Number(button.dataset.pageButton) === activePage)));
+    }
+
+    async function handleFiles(files) {
+      const supportedFiles = Array.from(files || []).filter(file => /\.(zip|json)$/i.test(file.name));
+      if (!supportedFiles.length) { setStatus("Choose at least one ZIP or JSON file.", 0, true); return; }
+      workspace.hidden = true;
+      drop.hidden = false;
+      newBtn.hidden = true;
+      exportBtn.hidden = true;
+      try {
+        const result = await analyseFiles(supportedFiles);
+        renderReport(result);
+      } catch (error) {
+        console.error(error);
+        setStatus(error && error.message ? error.message : "Could not analyse this archive.", 0, true);
+      }
+    }
+
+    fileInput.addEventListener("change", event => handleFiles(event.target.files));
+    drop.addEventListener("dragover", event => { event.preventDefault(); drop.classList.add("is-drag"); });
+    drop.addEventListener("dragleave", () => drop.classList.remove("is-drag"));
+    drop.addEventListener("drop", event => { event.preventDefault(); drop.classList.remove("is-drag"); handleFiles(event.dataTransfer.files); });
+    navEl.addEventListener("click", event => { const button = event.target.closest("[data-page-button]"); if (button) activatePage(button.dataset.pageButton); });
+    pagesEl.addEventListener("change", event => {
+      if (event.target.id === "mw-player-select" && currentView) {
+        selectedPlayerName = event.target.value;
+        const player = currentView.players.find(item => item.name === selectedPlayerName);
+        const details = pagesEl.querySelector("#mw-skill-details");
+        if (details) details.innerHTML = renderSkillDetails(player);
+      }
+    });
+    filtersEl.addEventListener("input", event => {
+      if (!event.target.matches("select, input")) return;
+      readFilters();
+      refreshReport();
+    });
+    resetFiltersBtn.addEventListener("click", () => {
+      filterState = {method: "conservative", tier: "all", target: "all", style: "all", role: "all", search: "", sort: "damage"};
+      populateFilters(report);
+      refreshReport();
+    });
+    newBtn.addEventListener("click", () => {
+      report = null;
+      currentView = null;
+      fileInput.value = "";
+      workspace.hidden = true;
+      filtersEl.hidden = true;
+      drop.hidden = false;
+      newBtn.hidden = true;
+      exportBtn.hidden = true;
+      setStatus("Ready.", 0);
+    });
+    exportBtn.addEventListener("click", async () => {
+      if (!window.html2canvas) { setStatus("PNG export library did not load. Check your internet connection.", 100, true); return; }
+      const page = pagesEl.querySelector('.mw-page[data-page="' + activePage + '"]');
+      if (!page) return;
+      setStatus("Rendering page " + (activePage + 1) + " as PNG…", 100);
+      try {
+        const canvas = await window.html2canvas(page, {backgroundColor: getComputedStyle(root).getPropertyValue("--mw-bg").trim() || null, scale: 2, useCORS: true});
+        const link = document.createElement("a");
+        link.download = String(activePage + 1).padStart(2, "0") + "_" + PAGE_NAMES[activePage].toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "") + ".png";
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+        setStatus("PNG exported.", 100);
+      } catch (error) {
+        console.error(error);
+        setStatus("Could not export this page as PNG.", 100, true);
+      }
+    });
+  })();
+  </script>
+</div>
+
+<script id="codex-visualization-floating-ui-core" src="https://unpkg.com/@floating-ui/core@1.7.3/dist/floating-ui.core.umd.min.js"></script>
+<script id="codex-visualization-floating-ui-dom" src="https://unpkg.com/@floating-ui/dom@1.7.4/dist/floating-ui.dom.umd.min.js"></script>
+<script id="codex-visualization-lucide" async src="https://unpkg.com/lucide@1.17.0/dist/umd/lucide.js"></script>
+<script id="codex-visualization-tooltip">/* oxlint-disable typescript/no-unsafe-argument, typescript/no-unsafe-call, typescript/no-unsafe-return */
+// Runs inside the visualization sandbox, not the host webview.
+(() => {
+  if (window.FloatingUIDOM == null) {
+    return;
+  }
+  const { autoUpdate, computePosition, flip, offset, shift, size } =
+    window.FloatingUIDOM;
+  const tooltipPlacements = new Set(["top", "right", "bottom", "left"]);
+  const tooltipId = `codex-visualization-tooltip-${
+    window.crypto?.randomUUID?.() ?? Date.now().toString(36)
+  }`;
+  const tooltipGap = 5;
+  const hoverDelay = 700;
+  const skipDelay = 300;
+  let activeTrigger = null;
+  let pendingTrigger = null;
+  let tooltip = null;
+  let openTimeout = null;
+  let autoUpdateCleanup = null;
+  let positionRequest = 0;
+  let skipDelayUntil = 0;
+
+  const getTrigger = (target) =>
+    target?.nodeType === Node.ELEMENT_NODE
+      ? target.closest("[data-tooltip]")
+      : null;
+  const containsTarget = (trigger, target) =>
+    target?.nodeType != null && trigger.contains(target);
+  const getContent = (trigger) =>
+    trigger.getAttribute("data-tooltip")?.trim() ?? "";
+  const getPlacement = (trigger) => {
+    const placement = trigger.getAttribute("data-tooltip-placement");
+    return tooltipPlacements.has(placement) ? placement : "top";
+  };
+  const getTooltip = () => {
+    if (tooltip == null) {
+      tooltip = document.createElement("div");
+      tooltip.id = tooltipId;
+      tooltip.className = "tooltip";
+      tooltip.setAttribute("role", "tooltip");
+    }
+    return tooltip;
+  };
+  const setDescribedBy = (trigger, described) => {
+    const ids = new Set(
+      (trigger.getAttribute("aria-describedby") ?? "")
+        .split(/\s+/)
+        .filter(Boolean),
+    );
+    if (described) {
+      ids.add(tooltipId);
+    } else {
+      ids.delete(tooltipId);
+    }
+    if (ids.size === 0) {
+      trigger.removeAttribute("aria-describedby");
+    } else {
+      trigger.setAttribute("aria-describedby", [...ids].join(" "));
+    }
+  };
+  const clearOpenTimeout = () => {
+    if (openTimeout != null) {
+      window.clearTimeout(openTimeout);
+      openTimeout = null;
+    }
+    pendingTrigger = null;
+  };
+  const closeTooltip = (activateSkipDelay = true) => {
+    clearOpenTimeout();
+    positionRequest += 1;
+    autoUpdateCleanup?.();
+    autoUpdateCleanup = null;
+    if (activeTrigger == null) {
+      return;
+    }
+    setDescribedBy(activeTrigger, false);
+    activeTrigger = null;
+    tooltip?.remove();
+    if (activateSkipDelay) {
+      skipDelayUntil = Date.now() + skipDelay;
+    }
+  };
+  const updatePosition = (trigger, floating) => {
+    const request = ++positionRequest;
+    void computePosition(trigger, floating, {
+      middleware: [
+        offset(tooltipGap),
+        flip({ padding: tooltipGap }),
+        shift({ padding: tooltipGap }),
+        size({
+          padding: tooltipGap,
+          apply({ availableHeight, availableWidth, elements }) {
+            elements.floating.style.setProperty(
+              "--tooltip-available-width",
+              `${Math.max(0, availableWidth)}px`,
+            );
+            elements.floating.style.setProperty(
+              "--tooltip-available-height",
+              `${Math.max(0, availableHeight)}px`,
+            );
+          },
+        }),
+      ],
+      placement: getPlacement(trigger),
+      strategy: "fixed",
+    })
+      .then(({ x, y }) => {
+        if (activeTrigger !== trigger || request !== positionRequest) {
+          return;
+        }
+        const scale = window.devicePixelRatio || 1;
+        floating.style.transform = `translate(${Math.round(x * scale) / scale}px, ${Math.round(y * scale) / scale}px)`;
+        floating.style.visibility = "visible";
+      })
+      .catch(() => {
+        if (activeTrigger === trigger && request === positionRequest) {
+          closeTooltip(false);
+        }
+      });
+  };
+  const openTooltip = (trigger) => {
+    const content = getContent(trigger);
+    if (!trigger.isConnected || content.length === 0) {
+      return;
+    }
+    clearOpenTimeout();
+    if (activeTrigger === trigger) {
+      return;
+    }
+    closeTooltip();
+    const floating = getTooltip();
+    floating.textContent = content;
+    floating.style.visibility = "hidden";
+    floating.style.transform = "translate(0, 0)";
+    document.body.appendChild(floating);
+    activeTrigger = trigger;
+    setDescribedBy(trigger, true);
+    autoUpdateCleanup = autoUpdate(trigger, floating, () => {
+      updatePosition(trigger, floating);
+    });
+  };
+  const requestOpen = (trigger, immediate = false) => {
+    if (
+      getContent(trigger).length === 0 ||
+      activeTrigger === trigger ||
+      pendingTrigger === trigger
+    ) {
+      return;
+    }
+    clearOpenTimeout();
+    pendingTrigger = trigger;
+    const delay =
+      immediate || activeTrigger != null || Date.now() < skipDelayUntil
+        ? 0
+        : hoverDelay;
+    if (delay === 0) {
+      openTooltip(trigger);
+      return;
+    }
+    openTimeout = window.setTimeout(() => {
+      openTimeout = null;
+      pendingTrigger = null;
+      openTooltip(trigger);
+    }, delay);
+  };
+  const handlePointerOpen = (event) => {
+    if (event.pointerType === "touch") {
+      return;
+    }
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    requestOpen(trigger);
+  };
+  const handleLeave = (event) => {
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const handleFocusIn = (event) => {
+    const trigger = getTrigger(event.target);
+    if (trigger?.matches(":focus-visible")) {
+      requestOpen(trigger, true);
+    }
+  };
+  const handleKeyDown = (event) => {
+    if (event.key === "Escape") {
+      closeTooltip();
+    }
+  };
+  const handleContextMenu = (event) => {
+    const trigger = getTrigger(event.target);
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const destroy = () => {
+    closeTooltip(false);
+    document.removeEventListener("pointerover", handlePointerOpen);
+    document.removeEventListener("pointerout", handleLeave);
+    document.removeEventListener("focusin", handleFocusIn);
+    document.removeEventListener("focusout", handleLeave);
+    document.removeEventListener("keydown", handleKeyDown);
+    document.removeEventListener("contextmenu", handleContextMenu);
+    tooltip = null;
+  };
+
+  document.addEventListener("pointerover", handlePointerOpen);
+  document.addEventListener("pointerout", handleLeave);
+  document.addEventListener("focusin", handleFocusIn);
+  document.addEventListener("focusout", handleLeave);
+  document.addEventListener("keydown", handleKeyDown);
+  document.addEventListener("contextmenu", handleContextMenu);
+  window.addEventListener("pagehide", destroy, { once: true });
+})();
+</script>
+<script id="codex-visualization-lucide-initialization">(() => {
+  const initialize = () => {
+    globalThis.lucide?.createIcons({ attrs: { width: 16, height: 16 } });
+  };
+  if (globalThis.lucide != null) {
+    initialize();
+    return;
+  }
+  document
+    .getElementById("codex-visualization-lucide")
+    ?.addEventListener("load", initialize, { once: true });
+})();
+</script>
+</body>
+</html>
