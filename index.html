@@ -1818,7 +1818,7 @@ svg {
     async function analyseFiles(files) {
       const canonical = new Map();
       const fullEvents = [];
-      const allEvents = [];
+      const battleUnitEvents = [];
       const loadouts = {};
       let ignoredJson = 0;
       let processedEntries = 0;
@@ -1836,11 +1836,11 @@ svg {
           }
           return;
         }
-        allEvents.push(...payload);
+        for (const event of payload) if (event && event.type === "battle_unit_fetched") battleUnitEvents.push(event);
         const hasRoster = payload.some(event => event && event.type === "new_guild_battle");
         if (hasRoster) {
           if (!fullEvents.length) canonical.clear();
-          fullEvents.push(...payload);
+          for (const event of payload) fullEvents.push(event);
         } else if (!fullEvents.length) {
           const tier = tierFrom(name, payload);
           if (tier != null) {
@@ -1859,7 +1859,7 @@ svg {
           const zip = await window.JSZip.loadAsync(file);
           const entries = Object.values(zip.files).filter(entry => !entry.dir && entry.name.toLowerCase().endsWith(".json"));
           if (!entries.length) throw new Error(file.name + " contains no JSON files.");
-          inputs.push(...entries.map(entry => ({name: entry.name, read: () => entry.async("string")})));
+          for (const entry of entries) inputs.push({name: entry.name, read: () => entry.async("string")});
           totalEntries += entries.length;
         } else {
           inputs.push({name: file.name, read: () => file.text()});
@@ -1886,7 +1886,7 @@ svg {
         const rosterData = buildRosters(fullEvents);
         characters = rosterData.characters;
         bosses = rosterData.bosses;
-        battleUnitStats = mergeBattleUnitFetched(characters, allEvents);
+        battleUnitStats = mergeBattleUnitFetched(characters, battleUnitEvents);
         const loadoutCount = mergeLoadouts(characters, loadouts);
         sourceType += " · " + (battleUnitStats.events ? "battle_unit_fetched used" : loadoutCount ? "loadout_data used" : "roster data used");
         const grouped = new Map();
@@ -1904,7 +1904,7 @@ svg {
         }
       } else {
         sourceType = "Encounter bundle";
-        battleUnitStats = mergeBattleUnitFetched(characters, allEvents);
+        battleUnitStats = mergeBattleUnitFetched(characters, battleUnitEvents);
         mergeLoadouts(characters, loadouts);
         namesAvailable = characters.size > 0;
         sourceType += namesAvailable ? " · player metadata enriched" : " · slot IDs used";
